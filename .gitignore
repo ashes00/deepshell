@@ -1,0 +1,17 @@
+# Python virtual environment
+myenv/
+
+# Byte-compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+
+# Nuitka build artifacts
+*.dist/
+*.build/
+*.onefile-build/
+*.pyz
+*.pyz.gpg
+
+# Ignore any folder whose name contains "build"
+*build*/
