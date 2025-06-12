@@ -1,0 +1,9 @@
+requests
+chardet
+
+
+DEV Enviroment:
+python3 -m venv myenv
+source myenv/bin/activate
+
+
