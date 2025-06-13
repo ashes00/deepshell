@@ -193,8 +193,7 @@ This script automates the creation and configuration of a Python virtual environ
 
 * **Environment Management:**
 Checks for an existing virtual environment named `myenv` in the current directory.
-If myenv exists, it prompts the user and attempts to remove it, ensuring a clean setup. The script will exit after a successful removal.
-Creates a new virtual environment named myenv using the Python interpreter that runs the script.
+If myenv exists, it attempts to remove it, ensuring a clean start. The script will exit after a successful removal.  Re-running dev-setup.py re-creates a new virtual environment named myenv using the Python interpreter that runs the script.
 * **Dependency Installation:**
 Reads a list of Python packages from a `modules.txt` file located in the same directory.
 Each package listed (one per line, comments starting with # are ignored) is then installed into the newly created myenv using pip.
