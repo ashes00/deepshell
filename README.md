@@ -184,6 +184,24 @@ The configuration includes:
 
 *(Support for more LLM providers can be added in the future!)*
 
+## Pro Tip!
+If running the binary on Linux nano your .bashrc file, 
+```bash
+nano .bashrc
+```
+Add an alias for deepshell, and save with Ctrl+s, then exit with Ctrl+x
+```bash
+alias ds="deepshell -q"
+```
+Then Update update your running .bashrc
+```bash
+source .bashrc
+```
+Now you can simplify your query command to remove the -q (or --query).  
+Just `ds` Your-Query-Here!
+```bash
+ds what is the best LLM
+```
 
 ## Development Environment Setup dev-setup.py:
 
