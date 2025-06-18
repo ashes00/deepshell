@@ -46,10 +46,10 @@ except subprocess.CalledProcessError as e:
 # This is OS-dependent (Scripts on Windows, bin on Linux/macOS).
 if sys.platform == "win32":
     venv_python = os.path.join(env_path, "Scripts", "python.exe")
-    # activate_script is no longer needed here for constructing the final output strings
+    activate_script = os.path.join(env_path, "Scripts", "activate.bat")
 else:
     venv_python = os.path.join(env_path, "bin", "python")
-    # activate_script is no longer needed here for constructing the final output strings
+    activate_script = os.path.join(env_path, "bin", "activate")
 
 # Read modules from modules.txt
 packages_to_install = []
@@ -82,13 +82,7 @@ else:
 print("\n--- Setup Complete ---")
 print("Ready to compile with Nuitka!")
 print(f"\nTo activate your environment, run:")
+print(f"  Linux/macOS: source {activate_script}")
+print(f"  Windows (Cmd): {activate_script}")
+print(f"  Windows (PowerShell): {os.path.join(env_path, 'Scripts', 'Activate.ps1')}")
 
-# Define platform-specific relative activation commands using env_name (e.g., "myenv")
-# These strings are tailored for copy-pasting into the respective shells.
-activate_cmd_linux = f"source {env_name}/bin/activate"
-activate_cmd_win_cmd = f"{env_name}\\Scripts\\activate.bat"
-activate_cmd_win_ps = f".\\{env_name}\\Scripts\\Activate.ps1" # Using .\\ for PowerShell relative execution
-
-print(f"  Linux/macOS: {activate_cmd_linux}")
-print(f"  Windows (Cmd): {activate_cmd_win_cmd}")
-print(f"  Windows (PowerShell): {activate_cmd_win_ps}")

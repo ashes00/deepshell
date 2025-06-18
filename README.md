@@ -184,51 +184,6 @@ The configuration includes:
 
 *(Support for more LLM providers can be added in the future!)*
 
-## Pro Tip!
-If running the binary on Linux nano your .bashrc file, 
-```bash
-nano .bashrc
-```
-Add an alias for deepshell, and save with Ctrl+s, then exit with Ctrl+x
-```bash
-alias ds="deepshell -q"
-```
-Then Update update your running .bashrc
-```bash
-source .bashrc
-```
-Now you can simplify your query command to remove the -q (or --query).  
-Just `ds` Your-Query-Here!
-```bash
-ds what is the best LLM
-```
-
-## Development Environment Setup dev-setup.py:
-
-This script automates the creation and configuration of a Python virtual environment, tailored for Nuitka development.
-
-**Key Functionalities:**
-
-* **Environment Management:**
-Checks for an existing virtual environment named `myenv` in the current directory.
-If myenv exists, it attempts to remove it, ensuring a clean start. The script will exit after a successful removal.  Re-running dev-setup.py re-creates a new virtual environment named myenv using the Python interpreter that runs the script.
-* **Dependency Installation:**
-Reads a list of Python packages from a `modules.txt` file located in the same directory.
-Each package listed (one per line, comments starting with # are ignored) is then installed into the newly created myenv using pip.
-If modules.txt is not found or is empty, no additional packages beyond the standard virtual environment ones are installed.
-* **Guidance:**
-Upon successful completion, the script provides platform-specific commands (Linux/macOS, Windows Cmd, Windows PowerShell) for the user to activate the myenv virtual environment.
-This script streamlines the initial setup process, ensuring a consistent and ready-to-use development environment with all necessary dependencies.
-* **Setup:**
-  ```bash
-  python3 dev-setup.py
-  ```
-* **Clean up:**
-Run it a second time, and it will clean up the venv
-  ```bash
-  python3 dev-setup.py
-  ```
-
 ---
 
 We hope DeepShell enhances your productivity and makes interacting with LLMs a breeze!
