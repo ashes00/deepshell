@@ -18,7 +18,7 @@ from utils import display_message, LLM_SERVICE_OLLAMA, LLM_SERVICE_GEMINI # Impo
 from settings import jump_to_previous_llm # Import the new function
 
 # Version
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 
 class CustomHelpFormatter(argparse.RawTextHelpFormatter):
     """Custom formatter for argparse help messages to adjust spacing."""
@@ -130,6 +130,68 @@ def set_gemini_api_key_interactive(config_dir, config_file):
     setup_config(config_dir, config_file, jump_to="gemini_keys", is_direct_flag_call=True)
     sys.exit(0)
 
+def start_interactive_session(config_data, config_dir, config_file):
+    """Starts an interactive chat session with the configured LLM."""
+    display_message("\n--- DeepShell Interactive Mode ---", "green")
+    display_message("Type 'exit' or 'quit' to end the session.", "yellow")
+
+    # Load service details from config
+    active_service_name = config_data.get("active_llm_service")
+    service_config = config_data["llm_services"][active_service_name]
+    model_name = service_config.get("model")
+    active_service_name_display = active_service_name.capitalize()
+
+    # Prepare service-specific details
+    api_key_value, api_key_nickname = (None, None)
+    server_address = None
+    if active_service_name == LLM_SERVICE_GEMINI:
+        api_key_value, api_key_nickname = _get_active_gemini_key_value(service_config)
+        if not api_key_value:
+            display_message("No active Gemini API key found. Please configure it via --setup.", "red")
+            sys.exit(1)
+    elif active_service_name == LLM_SERVICE_OLLAMA:
+        server_address = service_config.get("server_address")
+        if not server_address:
+            display_message("Ollama server address not configured. Please configure it via --setup.", "red")
+            sys.exit(1)
+
+    conversation_history = []
+    MAX_HISTORY_TURNS = 10 # 10 pairs of user/model messages
+    MAX_HISTORY_ITEMS = MAX_HISTORY_TURNS * 2
+
+    while True:
+        try:
+            user_input = input("> ")
+            if user_input.lower() in ['exit', 'quit']:
+                display_message("Exiting interactive mode.", "blue")
+                break
+            if not user_input.strip():
+                continue
+
+            # Trim history if it's too long. Keep the last 9 pairs and make room for the new one.
+            if len(conversation_history) >= MAX_HISTORY_ITEMS:
+                conversation_history = conversation_history[2:]
+
+            response_text = None
+            if active_service_name == LLM_SERVICE_GEMINI:
+                response_text = send_gemini_query(
+                    api_key_value, model_name, user_input, conversation_history,
+                    active_service_name_display, api_key_nickname, service_config
+                )
+            elif active_service_name == LLM_SERVICE_OLLAMA:
+                response_text = send_ollama_query(
+                    server_address, model_name, user_input, conversation_history,
+                    active_service_name_display, service_config
+                )
+
+            if response_text:
+                # Add to history using a canonical format
+                conversation_history.append({"role": "user", "content": user_input})
+                conversation_history.append({"role": "model", "content": response_text})
+
+        except EOFError: # Handle Ctrl+D
+            display_message("\nExiting interactive mode.", "blue")
+            break
 
 def main():
     """
@@ -151,12 +213,20 @@ def main():
             dest="model_change", 
             help="Change the default model for the active LLM service."
         )
-        parser.add_argument(
+        
+        # Group for mutually exclusive query/interactive modes
+        mode_group = parser.add_mutually_exclusive_group()
+        mode_group.add_argument(
             "-q", "--query",
             nargs='+', 
             metavar="QUERY",
             help="The query to send to the LLM. All text following this flag will be treated as the query.\n"
                  "Example: deepshell -q What is the capital of France?"
+        )
+        mode_group.add_argument(
+            "-i", "--interactive",
+            action="store_true",
+            help="Start an interactive chat session."
         )
         parser.add_argument(
             "-d", "--delete-config",
@@ -249,6 +319,18 @@ def main():
             jump_to_previous_llm(config_dir, config_file)
             sys.exit(0)
 
+        if args.interactive:
+            config_data = load_config(config_file)
+            if config_data is None or not config_data.get("active_llm_service"):
+                display_message("Configuration not found or no active LLM service. Running setup...", "yellow")
+                config_data = setup_config(config_dir, config_file, is_direct_flag_call=False)
+                if not config_data or not config_data.get("active_llm_service"):
+                    display_message("Setup incomplete. Exiting.", "red")
+                    sys.exit(1)
+            
+            start_interactive_session(config_data, config_dir, config_file)
+            sys.exit(0)
+
         config_data = load_config(config_file)
         user_query_list = args.query
         user_query = " ".join(user_query_list) if user_query_list else None
@@ -290,14 +372,14 @@ def main():
             if not server_address:
                 display_message("Ollama server address not configured. Please run --setup or --llm to configure Ollama.", "red")
                 sys.exit(1)
-            send_ollama_query(server_address, model_name, user_query, active_service_name_display, service_config)
+            send_ollama_query(server_address, model_name, user_query, [], active_service_name_display, service_config)
         elif active_service_name == LLM_SERVICE_GEMINI:
             active_api_key_value, active_nickname = _get_active_gemini_key_value(service_config)
             if not active_api_key_value:
                 display_message("No active Gemini API key configured or found. Please run --setup or --llm to configure Gemini.", "red")
                 sys.exit(1)
             send_gemini_query(
-                active_api_key_value, model_name, user_query,
+                active_api_key_value, model_name, user_query, [],
                 active_service_name_display,
                 active_nickname,
                 service_config 

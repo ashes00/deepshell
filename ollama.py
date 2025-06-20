@@ -132,32 +132,45 @@ def _setup_ollama_service(config_data, server_address_input_prompt="Enter OLLAMA
     display_message(f"Ollama service configured with model: {chosen_model}", "green")
     return config_data
 
-def send_ollama_query(server_address, model_name, user_query, active_service_name_display, ollama_service_config):
+def send_ollama_query(server_address, model_name, user_query, conversation_history, active_service_name_display, ollama_service_config):
     """
     Sends the user's query to the OLLAMA server's /api/chat endpoint
     and prints only the relevant response content.
+    `conversation_history` is a list of previous user/model messages.
+    Returns the text of the response, or None on failure.
     ollama_service_config is the specific configuration part for Ollama service.
     """
     sending_message = (
         f"Using active LLM service: {active_service_name_display}. "
         f"Sending query to {server_address} (Model: {model_name})..."
     )
-    # display_message(sending_message, "blue", end='') # Old way
-    display_message(sending_message, "blue") # New way, prints newline by default
-    sys.stdout.flush() # Ensure the message is displayed before animation starts
+    if not conversation_history:
+        display_message(sending_message, "blue")
+        sys.stdout.flush() # Ensure the message is displayed before animation starts
     message_len_for_animation = len(sending_message)
+
+    # Transform canonical history to Ollama's format
+    ollama_messages = []
+    for message in conversation_history:
+        # Ollama uses 'assistant' for model role
+        role = "assistant" if message["role"] == "model" else "user"
+        ollama_messages.append({
+            "role": role,
+            "content": message["content"]
+        })
+    # Add the new user query
+    ollama_messages.append({"role": "user", "content": user_query})
 
     url = f"{server_address}/api/chat"
     payload = {
-        "model": model_name,
-        "messages": [{"role": "user", "content": user_query}],
-        "stream": False 
+        "model": model_name, "messages": ollama_messages, "stream": False
     }
 
     stop_event = threading.Event()
     animation_thread = threading.Thread(target=_animate_progress, args=(stop_event, message_len_for_animation))
-    animation_thread.daemon = True 
-    animation_thread.start()
+    animation_thread.daemon = True
+    if not conversation_history: # Only animate on first query
+        animation_thread.start()
 
     response_data = None
     error_message_to_display = None 
@@ -181,12 +194,14 @@ def send_ollama_query(server_address, model_name, user_query, active_service_nam
         error_message_to_display = f"An unexpected error occurred during query: {e}"
     finally:
         stop_event.set()
-        animation_thread.join(timeout=0.5)
-        sys.stdout.write("\r" + " " * message_len_for_animation + "\r")
-        sys.stdout.flush()
+        if not conversation_history: # Only join/clear if started
+            animation_thread.join(timeout=0.5)
+            sys.stdout.write("\r" + " " * message_len_for_animation + "\r")
+            sys.stdout.flush()
 
     if error_message_to_display:
         display_message(error_message_to_display, "red")
+        return None
     elif response_data:
         if "message" in response_data and "content" in response_data["message"]:
             ollama_text_response = response_data["message"]["content"].strip()
@@ -203,5 +218,8 @@ def send_ollama_query(server_address, model_name, user_query, active_service_nam
             else:
                 print(ollama_text_response)
             display_message("-----------------------", "green") 
+            return ollama_text_response
         else:
             display_message(f"Error: Unexpected response format from server. Full response: {json.dumps(response_data, indent=2)}", "orange")
+            return None
+    return None

@@ -15,6 +15,9 @@ Designed for developers, researchers, and power users, DeepShell abstracts away 
 *   **Multi-LLM Support:**
     *   Seamlessly connect to **Ollama** servers (local or remote).
     *   Integrate with the **Google Gemini API**.
+*   **Conversational Memory:**
+    *   Engage in multi-turn conversations using the new **interactive mode** (`-i`).
+    *   The model remembers the context of the last 10 turns of your conversation.
 *   **Unified & Interactive Configuration:**
     *   A central, user-friendly settings menu (`-s`) guides you through all configuration tasks.
     *   Manages LLM service details, including server addresses (Ollama) and API keys (Gemini).
@@ -222,4 +225,3 @@ ds -v
 ```
 
 Happy Querying!
-

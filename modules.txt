@@ -1,4 +1,15 @@
 requests
 chardet
-nuitka
 rich
+argparse
+textwrap
+os
+sys
+subprocess
+shutil
+json
+requests
+threading
+time
+pyinstaller
+
