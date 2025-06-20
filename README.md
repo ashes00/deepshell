@@ -156,6 +156,11 @@ Your settings will be saved to `~/.deepshell/deepshell.conf`.
 ./deepshell -v (or --version)
 ```
 
+**Start an interactive chat session**
+```bash
+./deepshell -i (or --interactive)
+```
+
 ## ⚙️ Configuration File
 
 DeepShell stores its configuration in a JSON file located at `~/.deepshell/deepshell.conf`. While you can view this file, it's recommended to manage settings through DeepShell's command-line options for safety and ease of use.
@@ -204,8 +209,9 @@ export PATH=$PATH:/home/user/APPS-DIR
 2.  Create an aliases for ds & dsq for quick keyboard actions.
 ```bash
 nano .bashrc 
-alias ds="deepshell"
 alias dsq="deepshell -q"
+alias ds="deepshell"
+alias dsi="deepshell -i"
 ```
 3.  Save .bashrc file.
 ```bash
@@ -215,13 +221,17 @@ Ctrl+s & Ctrl+x
 ```bash
 source .bashrc
 ```
-5.  Us the alias to quickly query the LLM
+5.  Use the alias `dsq` to quickly query the LLM
 ```bash
 dsq What is the best LLM?
 ```
-6.  Use the alias to quickly access features
+6.  Use the alias `ds` to quickly access features with options
 ```bash
 ds -v
+```
+7.  Use the alias `dsi`to inter interactive mode
+```bash
+dsi
 ```
 
 Happy Querying!
