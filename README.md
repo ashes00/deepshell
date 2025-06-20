@@ -229,7 +229,7 @@ dsq What is the best LLM?
 ```bash
 ds -v
 ```
-7.  Use the alias `dsi`to inter interactive mode
+7.  Use the alias `dsi`to enter interactive mode
 ```bash
 dsi
 ```
