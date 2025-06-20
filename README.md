@@ -1,192 +1,225 @@
-# DeepShell: Your Universal LLM Command-Line Interface
+<div align="center">
+  <h1>DeepShell</h1>
+  <p><strong>Your Universal LLM Command-Line Interface</strong></p>
+</div>
 
 [![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/)
+<!-- Add other badges as appropriate, e.g., license, build status, etc. -->
 
-<!-- Add other badges as appropriate, e.g., license, build status -->
+**DeepShell** is a powerful and versatile command-line program that seamlessly blends the familiar environment of your local shell with the immense knowledge and capabilities of Large Language Models (LLMs). Imagine having direct access to the world's most advanced AI models—from local Ollama instances to cloud-based services like Google's Gemini—all unified within a single, efficient terminal interface.
 
-**DeepShell**: Your Universal LLM Command-Line Interface
-
-**DeepShell** is a powerful and versatile command-line program that seamlessly blends the familiar environment of your local shell with the immense knowledge and capabilities of Large Language Models (LLMs). Imagine having direct, remote access to the world's most advanced AI models—from local Ollama instances to cloud-based services like Google's Gemini—all unified within your terminal.
-
-Designed for developers, researchers, and power users who demand precision, flexibility, and efficiency, DeepShell cuts through the complexity of API integrations. It offers a streamlined pathway to query both open-source and proprietary LLMs, transforming your command prompt into a conduit for deep AI intelligence. Whether you're generating code snippets, summarizing extensive documents, brainstorming complex ideas, or crafting creative text, DeepShell makes it effortless.
-
-Say goodbye to juggling multiple tools! With DeepShell, your command line isn't just for local commands anymore; it's your portal to a new dimension of intelligent interaction, empowering you with efficient, configurable LLM access.
+Designed for developers, researchers, and power users, DeepShell abstracts away the complexity of API integrations. It offers a streamlined pathway to query both open-source and proprietary LLMs, transforming your command prompt into a conduit for deep AI intelligence.
 
 ## ✨ Features
 
-* **Multi-LLM Support:**
-  * Seamlessly connect to **Ollama** servers (local or remote).
-  * Integrate with **Google Gemini API**.
-  * Easily switch between configured LLM services.
-* **Interactive Setup & Configuration:**
-  * User-friendly setup wizard (`-s`) to guide you through initial configuration.
-  * Manages LLM service details, including server addresses (Ollama) and API keys (Gemini).
-  * Stores configuration securely in `~/.deepshell/deepshell.conf`.
-* **Flexible Model Management:**
-  * List available models from your connected LLM service.
-  * Set and change default models per service (`-model`).
-* **Gemini API Key Management:**
-  * Store and manage multiple Gemini API keys with user-defined nicknames.
-  * Easily switch between active Gemini API keys (`-set-key`).
-  * Display the currently active Gemini API key (`-show-key`).
-  * Quick link to check your Gemini API usage (`-gq`).
-* **Intuitive Querying:**
-  * Send queries directly from your command line (`-q` or `--query`).
-  * Engaging progress animation while waiting for LLM responses.
-* **User-Friendly Interface:**
-  * Clear, colored console output for enhanced readability.
-  * Well-formatted and alphabetized help messages (`-h`).
-  * View active configuration details (`-show-config`).
-  * Option to delete your configuration (`-d`).
-
-## 🚀 Why DeepShell?
-
-* **Unified Experience:** Access different LLMs without context switching.
-* **Efficiency:** Quickly query models and manage configurations from your terminal.
-* **Customizable:** Tailor DeepShell to your preferred models and services.
-* **Developer-Friendly:** Built with Python, making it easy to understand and extend.
-* **Local First, Cloud Ready:** Perfect for local development with Ollama and scalable with cloud LLMs like Gemini.
+*   **Multi-LLM Support:**
+    *   Seamlessly connect to **Ollama** servers (local or remote).
+    *   Integrate with the **Google Gemini API**.
+*   **Unified & Interactive Configuration:**
+    *   A central, user-friendly settings menu (`-s`) guides you through all configuration tasks.
+    *   Manages LLM service details, including server addresses (Ollama) and API keys (Gemini).
+    *   Stores configuration securely in `~/.deepshell/deepshell.conf`.
+*   **Flexible Service & Model Management:**
+    *   Easily switch between configured LLM services (`-l`).
+    *   Quickly jump back to the previously used LLM service (`-j`).
+    *   List available models from your connected LLM service and change the default model per service (`-m`).
+*   **Advanced Gemini API Key Management:**
+    *   Store and manage multiple Gemini API keys with user-defined nicknames.
+    *   Easily add new keys or set an active key from your stored list (`-set-key`).
+    *   Display the currently active Gemini API key's nickname and value (`-show-key`).
+    *   Quickly check your Gemini API key status and get a link to your usage dashboard (`-gq`).
+*   **Intuitive User Experience:**
+    *   Send queries directly from your command line (`-q`).
+    *   Beautiful Markdown rendering for LLM responses in the terminal, powered by `rich`.
+    *   Engaging progress animation while waiting for the LLM.
+    *   Clear, colored console output for enhanced readability.
+    *   Well-formatted and alphabetized help messages (`-h`).
 
 ## 🛠️ Installation
 
 1. **Prerequisites:**
-   
-   * Python 3.7 or higher.
-   * `pip` (Python package installer).
+    *   Python 3.7 or higher.
+    *   `pip` (Python package installer).
 
 2. **Clone the Repository:**
-   
-   ```bash
-   git clone <your-repository-url> # Replace with your actual repo URL
-   cd deepshell
-   ```
+    ```bash
+    git clone https://github.com/ashes00/deepshell.git
+    cd deepshell
+    ```
 
-3. **Install Dependencies (If running the python file):**
-   DeepShell uses the `requests` library for API communication, but all required modules will be listed in `modules.txt`.
-   
-   ```bash
-   pip install requests chardet
-   ```
+3. **Install Dependencies:**
+    The required Python modules are listed in `modules.txt`. You can install them manually or use the provided development setup script.
+    ```bash
+    pip install -r <(grep -vE "^\s*#|^\s*$" modules.txt)
+    ```
 
-4. **Run Python version:**
-
-   ```bash
-   python3 main.py
-   ```
-
-5. **Run Executable Binary Release :** 
-   
-   ```bash
-   ./deepshell
-   ```
+4. **Run DeepShell:**
+    *   **From source:**
+        ```bash
+        python3 main.py [OPTIONS]
+        ```
+    *   **As an executable** (if you've built one):
+        ```bash
+        ./deepshell [OPTIONS]
+        ```
 
 ## 🏁 Getting Started: Initial Setup
 
-The first time you run DeepShell, or if you want to reconfigure, use the `-s` flag:
+The first time you run DeepShell, or anytime you want to manage settings, use the `-s` or `--setup` flag:
 
 ```bash
-./deepshell -s (or --setup)
+./deepshell -s
 ```
 
-This will launch an interactive wizard that helps you:
-
-1. Choose an LLM service to configure (Ollama or Gemini).
-2. **For Ollama:** Enter your Ollama server address and select a default model.
-3. **For Gemini:** Manage your API keys (add, set active) and select a default model.
+This launches a comprehensive, interactive menu that allows you to:
+1.  **Add or Reconfigure LLM Services:**
+    *   **For Ollama:** Enter your server address (e.g., `http://localhost:11434`) and select a default model from those available on your server.
+    *   **For Gemini:** Manage your API keys (add, remove, set active) and select a default model from the Gemini API.
+2.  **Switch** the active LLM service.
+3.  **Change** the default model for the currently active service.
+4.  **Manage** Gemini API keys specifically.
+5.  **View** your current configuration or **delete** it entirely.
 
 Your settings will be saved to `~/.deepshell/deepshell.conf`.
 
 ## 💻 Usage & Command-Line Options
 
-Here are some common ways to use DeepShell:
+### Primary Usage
 
-* **Querying the Active LLM:**
-  
-  ```bash
-  ./deepshell -q (or --query) "What are the benefits of using a CLI for LLM interaction?"
-  ```
+**Query the active LLM**
+```bash
+./deepshell -q "What are the benefits of using a CLI for LLM interaction?"
+./deepshell --query "Write a python function to calculate a factorial"
+```
 
-* **Changing the Default Model for the Active Service:**
-  
-  ```bash
-  ./deepshell -model (or --model-change)
-  ```
-  
-  (This will list available models and prompt you to choose a new default.)
+### LLM & Model Management
 
-* **Switching or Configuring LLM Services:**
-  
-  ```bash
-  ./deepshell -l (or --llm)
-  ```
-  
-  (This allows you to switch between already configured services like Ollama and Gemini, or add/reconfigure one.)
+**Enter the main settings menu**
+```bash
+./deepshell -s (or --setup)
+```
 
-* **Managing Gemini API Keys:**
-  
-  * Add a new key or set an existing one as active:
-    
-    ```bash
-    ./deepshell -set-key (or --set-api-key)
-    ```
-  
-  * Show the currently active Gemini API key nickname and value:
-    
-    ```bash
-    ./deepshell -show-key (or --show-api-key)
-    ```
-  
-  * Get information on checking your Gemini API quota:
-    
-    ```bash
-    ./deepshell -gq (or --gemini-quota)
-    ```
+**Switch active service or configure services** (shortcut to a settings sub-menu)
+```bash
+./deepshell -l (or --llm)
+```
 
-* **Viewing Active Configuration:**
-  
-  ```bash
-  ./deepshell -show-config (or --show-full-config)
-  ```
+**Quickly jump to the previously used LLM service**
+```bash
+./deepshell -j (or --jump-llm)
+```
 
-* **Getting Help:**
-  
-  ```bash
-  ./deepshell -h (or --help)
-  ```
+**Change the default model for the active service** (shortcut)
+```bash
+./deepshell -m (or --model-change)
+```
 
-* **Checking Version:**
-  
-  ```bash
-  ./deepshell -v (or --version)
-  ```
+### Gemini-Specific Commands
 
-* **Deleting Configuration:** (Use with caution!)
-  
-  ```bash
-  ./deepshell -d (or --delete-config)
-  ```
+**Interactively manage Gemini API keys** (add, remove, set active)
+```bash
+./deepshell -set-key (or --set-api-key)
+```
+
+**Show the active Gemini API key nickname and value**
+```bash
+./deepshell -show-key (or --show-api-key)
+```
+
+**Check Gemini API key status and get quota info**
+```bash
+./deepshell -gq (or --gemini-quota)
+```
+
+### Configuration & Info
+
+**Display the currently active configuration details**
+```bash
+./deepshell -show-config (or --show-full-conf)
+```
+
+**Delete the entire configuration file** (use with caution!)
+```bash
+./deepshell -d (or --delete-config)
+```
+
+**Show the help message**
+```bash
+./deepshell -h (or --help)
+```
+
+**Show the program's version**
+```bash
+./deepshell -v (or --version)
+```
 
 ## ⚙️ Configuration File
 
 DeepShell stores its configuration in a JSON file located at `~/.deepshell/deepshell.conf`. While you can view this file, it's recommended to manage settings through DeepShell's command-line options for safety and ease of use.
 
-The configuration includes:
-
-* `active_llm_service`: The currently selected LLM service (e.g., "ollama" or "gemini").
-* `llm_services`: A dictionary containing specific configurations for each service:
-  * **Ollama:** `server_address` and default `model`.
-  * **Gemini:** A list of `api_keys` (each with a `nickname` and `key` value), the `active_api_key_nickname`, and the default `model`.
+An example configuration might look like this:
+```json
+{
+    "active_llm_service": "gemini",
+    "previous_active_llm_service": "ollama",
+    "llm_services": {
+        "ollama": {
+            "server_address": "http://localhost:11434",
+            "model": "llama3:latest",
+            "render_markdown": true
+        },
+        "gemini": {
+            "api_keys": [
+                {
+                    "nickname": "personal-key",
+                    "key": "BIsa8y..."
+                }
+            ],
+            "active_api_key_nickname": "personal-key",
+            "model": "models/gemini-1.5-flash",
+            "render_markdown": true
+        }
+    }
+}
+```
 
 ## 🤖 Supported LLMs
 
-* **Ollama:** Connect to any Ollama instance serving models like Llama, Mistral, etc.
-* **Google Gemini:** Access Gemini models (e.g., `gemini-pro`) via the Google AI Studio API.
-
-*(Support for more LLM providers can be added in the future!)*
+----
+*   **Ollama:** Connect to any Ollama instance serving models like Llama, Mistral, etc.
+*   **Google Gemini:** Access Gemini models (e.g., `gemini-1.5-pro`, `gemini-1.5-flash`) via the Google AI Studio API.
 
 ---
 
-We hope DeepShell enhances your productivity and makes interacting with LLMs a breeze!
-If you have suggestions or encounter issues, please feel free to open an issue on the project repository.
+## ⚙️ Pro Tip
 
-Happy Hacking!
+1.  Copy deepshell to your Environment path:
+```bash
+nano .bashrc 
+export PATH=$PATH:/home/user/APPS-DIR
+```
+2.  Create an aliases for ds & dsq for quick keyboard actions.
+```bash
+nano .bashrc 
+alias ds="deepshell"
+alias dsq="deepshell -q"
+```
+3.  Save .bashrc file.
+```bash
+Ctrl+s & Ctrl+x
+```
+4. Update your .bashrc file to use commands
+```bash
+source .bashrc
+```
+5.  Us the alias to quickly query the LLM
+```bash
+dsq What is the best LLM?
+```
+6.  Use the alias to quickly access features
+```bash
+ds -v
+```
+
+Happy Querying!
+
