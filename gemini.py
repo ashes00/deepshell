@@ -320,25 +320,22 @@ def _setup_gemini_service(config_data):
     display_message(f"Gemini service configured with model: {chosen_model_full_name.split('/')[-1]}", "green")
     return config_data
 
-def send_gemini_query(api_key, model_name, user_query, conversation_history, active_service_name_display, api_key_nickname_display, gemini_service_config):
+def send_gemini_query(api_key, model_name, user_query, conversation_history, active_service_name_display, api_key_nickname_display, gemini_service_config, config_data):
     """
     Sends the user's query to the Gemini API and prints the response.
-    Model name should be the full "models/gemini-pro" style name.
-    If Markdown rendering is enabled in the service configuration, the response
-    will be formatted using the `rich` library.
+    Supports both streaming and non-streaming responses based on global config.
     `conversation_history` is a list of previous user/model messages.
     Returns the text of the response, or None on failure.
-    gemini_service_config is the specific configuration part for Gemini service.
     """
+    enable_streaming = config_data.get("enable_streaming", True)
+    render_markdown_enabled = gemini_service_config.get("render_markdown", True)
+
     model_display_name = model_name.split('/')[-1]
     sending_message = (
         f"Using active LLM service: {active_service_name_display} (API Key: '{api_key_nickname_display}'). "
         f"Sending query (Model: {model_display_name})..."
     )
-    if not conversation_history:
-        display_message(sending_message, "blue")
-        sys.stdout.flush() # Ensure the message is displayed before animation starts
-    message_len_for_animation = len(sending_message)
+
     if not model_name.startswith("models/"):
         model_name_for_api = f"models/{model_name}"
     else:
@@ -356,64 +353,105 @@ def send_gemini_query(api_key, model_name, user_query, conversation_history, act
     # Add the new user query
     gemini_history.append({"role": "user", "parts": [{"text": user_query}]})
 
-    url = f"{GEMINI_API_BASE_URL}/{model_name_for_api}:generateContent?key={api_key}"
+    if enable_streaming:
+        url = f"{GEMINI_API_BASE_URL}/{model_name_for_api}:streamGenerateContent?key={api_key}&alt=sse"
+    else:
+        url = f"{GEMINI_API_BASE_URL}/{model_name_for_api}:generateContent?key={api_key}"
     payload = {"contents": gemini_history}
 
-    stop_event = threading.Event()
-    animation_thread = threading.Thread(target=_animate_progress, args=(stop_event, message_len_for_animation))
+    stop_event = threading.Event() # Event to signal the animation thread to stop
+    animation_thread = threading.Thread(target=_animate_progress, args=(stop_event, sending_message))
     animation_thread.daemon = True
     if not conversation_history: # Only animate on first query
         animation_thread.start()
 
-    response_data = None
-    error_message_to_display = None 
-    try:
-        response = requests.post(url, json=payload, timeout=120)
-        response.raise_for_status() 
-        response_data = response.json()
-    except requests.exceptions.RequestException as e:
-        error_message_to_display = f"Error during Gemini query: {e}"
-        if hasattr(e, 'response') and e.response is not None:
-            try:
-                err_details = e.response.json().get("error", {}).get("message", e.response.text)
-                error_message_to_display += f" - Server detail: {err_details}"
-            except json.JSONDecodeError:
-                error_message_to_display += f" - Server response: {e.response.text}"
-    except json.JSONDecodeError:
-        error_message_to_display = "Error: Could not parse JSON response from Gemini API."
-    finally:
-        stop_event.set()
-        if not conversation_history: # Only join/clear if started
-            animation_thread.join(timeout=0.5)
-            sys.stdout.write("\r" + " " * message_len_for_animation + "\r")
-            sys.stdout.flush()
+    if not enable_streaming:
+        # --- NON-STREAMING LOGIC ---
+        response_data = None
+        error_message_to_display = None
+        try:
+            response = requests.post(url, json=payload, timeout=120)
+            response.raise_for_status()
+            response_data = response.json()
+        except requests.exceptions.RequestException as e:
+            error_message_to_display = f"Error during Gemini query: {e}"
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    err_details = e.response.json().get("error", {}).get("message", e.response.text)
+                    error_message_to_display += f" - Server detail: {err_details}"
+                except json.JSONDecodeError:
+                    error_message_to_display += f" - Server response: {e.response.text}"
+        except json.JSONDecodeError:
+            error_message_to_display = "Error: Could not parse JSON response from Gemini API."
+        finally:
+            stop_event.set()
+            if not conversation_history:
+                animation_thread.join(timeout=0.5)
 
-    if response_data and 'candidates' in response_data and response_data['candidates'] and \
-       'content' in response_data['candidates'][0] and \
-       'parts' in response_data['candidates'][0]['content'] and response_data['candidates'][0]['content']['parts'] and \
-       'text' in response_data['candidates'][0]['content']['parts'][0]:
-        gemini_text_response = response_data['candidates'][0]['content']['parts'][0]['text'].strip()
-        render_markdown_enabled = gemini_service_config.get("render_markdown", True) 
-
-        display_message("--- Gemini Response ---", "green") 
-        if render_markdown_enabled:
-            try:
-                # Assuming rich_console and Markdown are imported/available
+        if response_data and 'candidates' in response_data and response_data['candidates'] and \
+           'content' in response_data['candidates'][0] and \
+           'parts' in response_data['candidates'][0]['content'] and response_data['candidates'][0]['content']['parts'] and \
+           'text' in response_data['candidates'][0]['content']['parts'][0]:
+            gemini_text_response = response_data['candidates'][0]['content']['parts'][0]['text'].strip()
+            display_message("--- Gemini Response ---", "green")
+            if render_markdown_enabled:
                 rich_console.print(Markdown(gemini_text_response))
-            except Exception as e: 
-                display_message(f"Rich Markdown rendering failed: {e}. Falling back to plain text.", "orange")
+            else:
                 print(gemini_text_response)
+            display_message("-----------------------", "green")
+            return gemini_text_response
+        elif error_message_to_display:
+            display_message(error_message_to_display, "red")
         else:
-            print(gemini_text_response)
-        display_message("-----------------------", "green") 
-        return gemini_text_response
-    elif error_message_to_display: 
-        display_message(error_message_to_display, "red")
+            display_message(f"Error: Unexpected or empty response format from Gemini. Full response: {json.dumps(response_data, indent=2)}", "orange")
         return None
-    elif not response_data and not error_message_to_display: 
-        display_message("Error: Received an empty or unexpected response from Gemini API.", "orange")
+
+    else:
+        # --- STREAMING LOGIC ---
+        full_response_text = ""
+        error_message_to_display = None
+        try:
+            with requests.post(url, json=payload, timeout=120, stream=True) as response:
+                stop_event.set()
+                if not conversation_history:
+                    animation_thread.join(timeout=0.5)
+
+                if response.status_code == 200:
+                    display_message("--- Gemini Response (Streaming) ---", "green")
+                    sys.stdout.flush()
+                    for line in response.iter_lines():
+                        if line and line.strip().startswith(b'data: '):
+                            json_str = line.decode('utf-8')[len('data: '):]
+                            try:
+                                chunk = json.loads(json_str)
+                                if 'candidates' in chunk and chunk['candidates'] and \
+                                   'content' in chunk['candidates'][0] and \
+                                   'parts' in chunk['candidates'][0]['content'] and chunk['candidates'][0]['content']['parts'] and \
+                                   'text' in chunk['candidates'][0]['content']['parts'][0]:
+                                    text_part = chunk['candidates'][0]['content']['parts'][0]['text']
+                                    print(text_part, end='', flush=True)
+                                    full_response_text += text_part
+                            except json.JSONDecodeError:
+                                pass # Ignore malformed JSON chunks
+                    print() # Final newline
+                    display_message("-----------------------------------", "green")
+                    return full_response_text
+                else:
+                    error_details = f"Server responded with status {response.status_code}."
+                    try:
+                        err_json = response.json()
+                        error_details += f" Details: {err_json.get('error', {}).get('message', response.text)}"
+                    except json.JSONDecodeError:
+                        error_details += f" Response: {response.text}"
+                    error_message_to_display = f"Error during Gemini query: {error_details}"
+        except requests.exceptions.RequestException as e:
+            error_message_to_display = f"Error during Gemini query: {e}"
+        finally:
+            if not stop_event.is_set():
+                stop_event.set()
+                if not conversation_history:
+                    animation_thread.join(timeout=0.5)
+        
+        if error_message_to_display:
+            display_message(error_message_to_display, "red")
         return None
-    elif response_data: 
-        display_message(f"Error: Unexpected response format from Gemini. Full response: {json.dumps(response_data, indent=2)}", "orange")
-        return None
-    return None

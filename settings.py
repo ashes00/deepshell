@@ -25,7 +25,9 @@ def get_default_config_structure():
     """Returns the basic structure for a new configuration file."""
     return {
         "active_llm_service": None,
-        "llm_services": {}
+        "llm_services": {},
+        "interactive_history_limit": 25,
+        "enable_streaming": False,
     }
 
 def load_config(config_file):
@@ -178,6 +180,63 @@ def _handle_active_model_change(config_data, config_file):
         display_message("Invalid input. Please enter a number or 'c'.", "red")
     except KeyboardInterrupt:
         display_message("\nModel change cancelled.", "yellow")
+
+def _handle_toggle_streaming(config_data, config_file):
+    """Handles toggling response streaming."""
+    current_state = config_data.get("enable_streaming", True)
+    new_state = not current_state
+    config_data["enable_streaming"] = new_state
+    display_message(f"Response streaming has been {'Enabled' if new_state else 'Disabled'}.", "green")
+    save_config(config_file, config_data)
+
+def _handle_toggle_markdown(config_data, config_file):
+    """Handles toggling markdown rendering for the active service."""
+    active_service = config_data.get("active_llm_service")
+    if not active_service:
+        display_message("No active LLM service. Please select or configure one first.", "yellow")
+        return
+
+    service_config = config_data.get("llm_services", {}).get(active_service)
+    if not service_config:
+        display_message(f"Configuration for active service '{active_service}' not found.", "red")
+        return
+
+    # Default to True if the key doesn't exist for some reason
+    current_state = service_config.get("render_markdown", True)
+    new_state = not current_state
+    service_config["render_markdown"] = new_state
+
+    display_message(f"Markdown rendering for {active_service.capitalize()} has been {'Enabled' if new_state else 'Disabled'}.", "green")
+    save_config(config_file, config_data)
+
+def _handle_set_history_limit(config_data, config_file):
+    """Handles changing the interactive mode history limit."""
+    current_limit = config_data.get("interactive_history_limit", 25)
+    display_message("\n--- Set Interactive History Limit ---", "green")
+    display_message("This sets the number of past conversation turns (user query + model response) to remember.", "blue")
+    
+    while True:
+        try:
+            prompt = f"Enter the new history limit (current: {current_limit}, 0 for no memory): "
+            choice = input(prompt).strip()
+            if not choice:
+                display_message("No change made.", "yellow")
+                return
+
+            new_limit = int(choice)
+            if new_limit < 0:
+                display_message("History limit cannot be negative. Please enter 0 or a positive number.", "red")
+                continue
+            
+            config_data["interactive_history_limit"] = new_limit
+            display_message(f"Interactive history limit set to {new_limit} turns.", "green")
+            save_config(config_file, config_data)
+            return
+        except ValueError:
+            display_message("Invalid input. Please enter a whole number.", "red")
+        except KeyboardInterrupt:
+            display_message("\nHistory limit change cancelled.", "yellow")
+            return
 
 def _handle_switch_active_llm(config_data, config_file):
     """Handles switching the active LLM service."""
@@ -349,6 +408,12 @@ def setup_config(config_dir, config_file, jump_to=None, is_direct_flag_call=Fals
             
             menu_options.append({"key": str(next_key), "text": "Change Model for Active Service", "action": "model_change"})
             next_key += 1
+            menu_options.append({"key": str(next_key), "text": "Toggle Markdown Rendering for Active Service", "action": "toggle_markdown"})
+            next_key += 1
+            menu_options.append({"key": str(next_key), "text": "Set Interactive History Limit", "action": "set_history_limit"})
+            next_key += 1
+            menu_options.append({"key": str(next_key), "text": "Toggle Response Streaming", "action": "toggle_streaming"})
+            next_key += 1
             menu_options.append({"key": str(next_key), "text": "View Active Configuration", "action": "show_config"})
             next_key += 1
             menu_options.append({"key": str(next_key), "text": "Delete Entire Configuration", "action": "delete_config"})
@@ -378,6 +443,12 @@ def setup_config(config_dir, config_file, jump_to=None, is_direct_flag_call=Fals
                 _handle_gemini_key_management(config_data, config_file)
             elif action_to_take == "model_change":
                 _handle_active_model_change(config_data, config_file)
+            elif action_to_take == "toggle_markdown":
+                _handle_toggle_markdown(config_data, config_file)
+            elif action_to_take == "set_history_limit":
+                _handle_set_history_limit(config_data, config_file)
+            elif action_to_take == "toggle_streaming":
+                _handle_toggle_streaming(config_data, config_file)
             elif action_to_take == "show_config":
                 show_active_configuration(config_dir, config_file) 
             elif action_to_take == "delete_config":

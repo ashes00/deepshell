@@ -18,7 +18,7 @@ from utils import display_message, LLM_SERVICE_OLLAMA, LLM_SERVICE_GEMINI # Impo
 from settings import jump_to_previous_llm # Import the new function
 
 # Version
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 
 class CustomHelpFormatter(argparse.RawTextHelpFormatter):
     """Custom formatter for argparse help messages to adjust spacing."""
@@ -156,8 +156,9 @@ def start_interactive_session(config_data, config_dir, config_file):
             sys.exit(1)
 
     conversation_history = []
-    MAX_HISTORY_TURNS = 10 # 10 pairs of user/model messages
-    MAX_HISTORY_ITEMS = MAX_HISTORY_TURNS * 2
+    # Read history limit from config, with a default of 25
+    max_history_turns = config_data.get("interactive_history_limit", 25)
+    max_history_items = max_history_turns * 2
 
     while True:
         try:
@@ -168,20 +169,24 @@ def start_interactive_session(config_data, config_dir, config_file):
             if not user_input.strip():
                 continue
 
-            # Trim history if it's too long. Keep the last 9 pairs and make room for the new one.
-            if len(conversation_history) >= MAX_HISTORY_ITEMS:
-                conversation_history = conversation_history[2:]
+            # Trim history if it's too long.
+            if max_history_items > 0:
+                if len(conversation_history) >= max_history_items:
+                    # Keep the last N-1 pairs to make room for the new one.
+                    conversation_history = conversation_history[2:]
+            else: # max_history_items is 0 or less
+                conversation_history = [] # No memory if limit is 0
 
             response_text = None
             if active_service_name == LLM_SERVICE_GEMINI:
                 response_text = send_gemini_query(
                     api_key_value, model_name, user_input, conversation_history,
-                    active_service_name_display, api_key_nickname, service_config
+                    active_service_name_display, api_key_nickname, service_config, config_data
                 )
             elif active_service_name == LLM_SERVICE_OLLAMA:
                 response_text = send_ollama_query(
                     server_address, model_name, user_input, conversation_history,
-                    active_service_name_display, service_config
+                    active_service_name_display, service_config, config_data
                 )
 
             if response_text:
@@ -372,7 +377,7 @@ def main():
             if not server_address:
                 display_message("Ollama server address not configured. Please run --setup or --llm to configure Ollama.", "red")
                 sys.exit(1)
-            send_ollama_query(server_address, model_name, user_query, [], active_service_name_display, service_config)
+            send_ollama_query(server_address, model_name, user_query, [], active_service_name_display, service_config, config_data)
         elif active_service_name == LLM_SERVICE_GEMINI:
             active_api_key_value, active_nickname = _get_active_gemini_key_value(service_config)
             if not active_api_key_value:
@@ -381,8 +386,8 @@ def main():
             send_gemini_query(
                 active_api_key_value, model_name, user_query, [],
                 active_service_name_display,
-                active_nickname,
-                service_config 
+                active_nickname, service_config,
+                config_data
             )
 
     except KeyboardInterrupt:

@@ -132,94 +132,108 @@ def _setup_ollama_service(config_data, server_address_input_prompt="Enter OLLAMA
     display_message(f"Ollama service configured with model: {chosen_model}", "green")
     return config_data
 
-def send_ollama_query(server_address, model_name, user_query, conversation_history, active_service_name_display, ollama_service_config):
+def send_ollama_query(server_address, model_name, user_query, conversation_history, active_service_name_display, ollama_service_config, config_data):
     """
     Sends the user's query to the OLLAMA server's /api/chat endpoint
-    and prints only the relevant response content.
+    and prints the response. Supports streaming and non-streaming.
     `conversation_history` is a list of previous user/model messages.
     Returns the text of the response, or None on failure.
-    ollama_service_config is the specific configuration part for Ollama service.
     """
+    enable_streaming = config_data.get("enable_streaming", True)
+    render_markdown_enabled = ollama_service_config.get("render_markdown", True)
+
     sending_message = (
         f"Using active LLM service: {active_service_name_display}. "
         f"Sending query to {server_address} (Model: {model_name})..."
     )
-    if not conversation_history:
-        display_message(sending_message, "blue")
-        sys.stdout.flush() # Ensure the message is displayed before animation starts
-    message_len_for_animation = len(sending_message)
 
     # Transform canonical history to Ollama's format
     ollama_messages = []
     for message in conversation_history:
-        # Ollama uses 'assistant' for model role
         role = "assistant" if message["role"] == "model" else "user"
-        ollama_messages.append({
-            "role": role,
-            "content": message["content"]
-        })
-    # Add the new user query
+        ollama_messages.append({"role": role, "content": message["content"]})
     ollama_messages.append({"role": "user", "content": user_query})
 
     url = f"{server_address}/api/chat"
     payload = {
-        "model": model_name, "messages": ollama_messages, "stream": False
+        "model": model_name, "messages": ollama_messages, "stream": enable_streaming
     }
 
     stop_event = threading.Event()
-    animation_thread = threading.Thread(target=_animate_progress, args=(stop_event, message_len_for_animation))
+    animation_thread = threading.Thread(target=_animate_progress, args=(stop_event, sending_message))
     animation_thread.daemon = True
-    if not conversation_history: # Only animate on first query
+    if not conversation_history:
         animation_thread.start()
 
-    response_data = None
-    error_message_to_display = None 
-    http_response_obj = None 
+    if not enable_streaming:
+        # --- NON-STREAMING LOGIC ---
+        response_data = None
+        error_message_to_display = None
+        try:
+            response = requests.post(url, json=payload, timeout=120)
+            response.raise_for_status()
+            response_data = response.json()
+        except requests.exceptions.RequestException as e:
+            error_message_to_display = f"Error during Ollama query: {e}"
+        except json.JSONDecodeError:
+            error_message_to_display = "Error: Could not parse JSON response from Ollama."
+        finally:
+            stop_event.set()
+            if not conversation_history:
+                animation_thread.join(timeout=0.5)
 
-    try:
-        http_response_obj = requests.post(url, json=payload, timeout=120)
-        http_response_obj.raise_for_status()
-        response_data = http_response_obj.json()
-    except requests.exceptions.ConnectionError:
-        error_message_to_display = f"Connection Error: Could not connect to {server_address}. Is the server running and accessible?"
-    except requests.exceptions.Timeout:
-        error_message_to_display = f"Request Timeout: The server at {server_address} did not respond in time."
-    except requests.exceptions.HTTPError as e:
-        error_message_to_display = f"HTTP Error during query: {e} - Server response: {getattr(e.response, 'text', 'No response text')}"
-        http_response_obj = e.response 
-    except json.JSONDecodeError:
-        resp_text = getattr(http_response_obj, 'text', 'No response object available for text.') if http_response_obj else 'No response object.'
-        error_message_to_display = f"JSON Decode Error: Could not parse response from server. Response text: {resp_text}"
-    except Exception as e:
-        error_message_to_display = f"An unexpected error occurred during query: {e}"
-    finally:
-        stop_event.set()
-        if not conversation_history: # Only join/clear if started
-            animation_thread.join(timeout=0.5)
-            sys.stdout.write("\r" + " " * message_len_for_animation + "\r")
-            sys.stdout.flush()
-
-    if error_message_to_display:
-        display_message(error_message_to_display, "red")
-        return None
-    elif response_data:
-        if "message" in response_data and "content" in response_data["message"]:
+        if error_message_to_display:
+            display_message(error_message_to_display, "red")
+            return None
+        if response_data and "message" in response_data and "content" in response_data["message"]:
             ollama_text_response = response_data["message"]["content"].strip()
-            render_markdown_enabled = ollama_service_config.get("render_markdown", True) 
-
-            display_message("--- OLLAMA Response ---", "green") 
+            display_message("--- OLLAMA Response ---", "green")
             if render_markdown_enabled:
-                try:
-                    # Assuming rich_console and Markdown are imported/available
-                    rich_console.print(Markdown(ollama_text_response))
-                except Exception as e: 
-                    display_message(f"Rich Markdown rendering failed: {e}. Falling back to plain text.", "orange")
-                    print(ollama_text_response)
+                rich_console.print(Markdown(ollama_text_response))
             else:
                 print(ollama_text_response)
-            display_message("-----------------------", "green") 
+            display_message("-----------------------", "green")
             return ollama_text_response
         else:
             display_message(f"Error: Unexpected response format from server. Full response: {json.dumps(response_data, indent=2)}", "orange")
             return None
-    return None
+
+    else:
+        # --- STREAMING LOGIC ---
+        full_response_text = ""
+        error_message_to_display = None
+        try:
+            with requests.post(url, json=payload, timeout=120, stream=True) as response:
+                stop_event.set()
+                if not conversation_history:
+                    animation_thread.join(timeout=0.5)
+                
+                if response.status_code == 200:
+                    display_message("--- OLLAMA Response (Streaming) ---", "green")
+                    sys.stdout.flush()
+                    for line in response.iter_lines():
+                        if line:
+                            try:
+                                chunk = json.loads(line.decode('utf-8'))
+                                if not chunk.get('done', False):
+                                    content_part = chunk.get('message', {}).get('content', '')
+                                    print(content_part, end='', flush=True)
+                                    full_response_text += content_part
+                            except json.JSONDecodeError:
+                                pass # Ignore malformed lines
+                    print() # Ensure a final newline after plain text stream
+                    display_message("-----------------------------------", "green")
+                    return full_response_text
+                else:
+                    error_message_to_display = f"HTTP Error: Server responded with status {response.status_code} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            error_message_to_display = f"Connection Error during Ollama query: {e}"
+        finally:
+            if not stop_event.is_set():
+                stop_event.set()
+                if not conversation_history:
+                    animation_thread.join(timeout=0.5)
+
+        if error_message_to_display:
+            display_message(error_message_to_display, "red")
+        return None

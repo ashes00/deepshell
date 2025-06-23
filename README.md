@@ -15,9 +15,11 @@ Designed for developers, researchers, and power users, DeepShell abstracts away 
 *   **Multi-LLM Support:**
     *   Seamlessly connect to **Ollama** servers (local or remote).
     *   Integrate with the **Google Gemini API**.
-*   **Conversational Memory:**
-    *   Engage in multi-turn conversations using the new **interactive mode** (`-i`).
-    *   The model remembers the context of the last 10 turns of your conversation.
+*   **Conversational Memory & Customization:**
+    *   Engage in multi-turn conversations using the **interactive mode** (`-i`).
+    *   Set the conversation history limit (defaults to 25 turns).
+    *   Toggle response streaming for immediate (plain-text) or complete (Markdown-rendered) output. Streaming is disabled by default to preserve formatting.
+    *   Enable or disable Markdown rendering for each LLM service individually.
 *   **Unified & Interactive Configuration:**
     *   A central, user-friendly settings menu (`-s`) guides you through all configuration tasks.
     *   Manages LLM service details, including server addresses (Ollama) and API keys (Gemini).
@@ -82,6 +84,10 @@ This launches a comprehensive, interactive menu that allows you to:
 3.  **Change** the default model for the currently active service.
 4.  **Manage** Gemini API keys specifically.
 5.  **View** your current configuration or **delete** it entirely.
+6.  **Toggle Markdown Rendering:** Enable or disable Markdown formatting for the active service's responses.
+7.  **Set Interactive History Limit:** Change the number of conversation turns remembered in interactive mode.
+8.  **Toggle Response Streaming:** Enable or disable streaming responses. (Note: Markdown is not supported in streaming mode).
+
 
 Your settings will be saved to `~/.deepshell/deepshell.conf`.
 
