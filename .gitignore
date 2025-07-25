@@ -13,5 +13,8 @@ __pycache__/
 *.pyz
 *.pyz.gpg
 
+# C Build
+*.o
+
 # Ignore any folder whose name contains "build"
 *build*/
