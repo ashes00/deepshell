@@ -1,14 +1,14 @@
 <div align="center">
-  <h1>DeepShell</h1>
+  <h1>DeepShell C Version</h1>
   <p><strong>Your Universal LLM Command-Line Interface</strong></p>
 </div>
 
-[![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/)
+[![C Version](https://img.shields.io/badge/C-Native-green.svg)](https://gcc.gnu.org/)
 <!-- Add other badges as appropriate, e.g., license, build status, etc. -->
 
-**DeepShell** is a powerful and versatile command-line program that seamlessly blends the familiar environment of your local shell with the immense knowledge and capabilities of Large Language Models (LLMs). Imagine having direct access to the world's most advanced AI models—from local Ollama instances to cloud-based services like Google's Gemini—all unified within a single, efficient terminal interface.
+**DeepShell** is a powerful and versatile command-line program written in C that seamlessly blends the familiar environment of your local shell with the immense knowledge and capabilities of Large Language Models (LLMs). Imagine having direct access to the world's most advanced AI models—from local Ollama instances to cloud-based services like Google's Gemini—all unified within a single, efficient native binary.
 
-Designed for developers, researchers, and power users, DeepShell abstracts away the complexity of API integrations. It offers a streamlined pathway to query both open-source and proprietary LLMs, transforming your command prompt into a conduit for deep AI intelligence.
+Designed for developers, researchers, and power users, DeepShell abstracts away the complexity of API integrations. It offers a streamlined pathway to query both open-source and proprietary LLMs, transforming your command prompt into a conduit for deep AI intelligence with native performance.
 
 ## ✨ Features
 
@@ -35,7 +35,7 @@ Designed for developers, researchers, and power users, DeepShell abstracts away 
     *   Quickly check your Gemini API key status and get a link to your usage dashboard (`-gq`).
 *   **Intuitive User Experience:**
     *   Send queries directly from your command line (`-q`).
-    *   Beautiful Markdown rendering for LLM responses in the terminal, powered by `rich`.
+         *   Beautiful Markdown rendering for LLM responses in the terminal with native C implementation.
     *   Engaging progress animation while waiting for the LLM.
     *   Clear, colored console output for enhanced readability.
     *   Well-formatted and alphabetized help messages (`-h`).
@@ -43,30 +43,31 @@ Designed for developers, researchers, and power users, DeepShell abstracts away 
 ## 🛠️ Installation
 
 1. **Prerequisites:**
-    *   Python 3.7 or higher.
-    *   `pip` (Python package installer).
+    *   GCC compiler and build tools
+    *   libcurl4-openssl-dev
+    *   libjson-c-dev
 
-2. **Clone the Repository:**
+2. **Install Dependencies (Linux):**
+    ```bash
+    sudo apt-get update
+    sudo apt-get install -y build-essential libcurl4-openssl-dev libjson-c-dev
+    ```
+
+3. **Clone the Repository:**
     ```bash
     git clone https://github.com/ashes00/deepshell.git
     cd deepshell
     ```
 
-3. **Install Dependencies:**
-    The required Python modules are listed in `modules.txt`. You can install them manually or use the provided development setup script.
+4. **Build DeepShell:**
     ```bash
-    pip install -r <(grep -vE "^\s*#|^\s*$" modules.txt)
+    make
     ```
 
-4. **Run DeepShell:**
-    *   **From source:**
-        ```bash
-        python3 main.py [OPTIONS]
-        ```
-    *   **As an executable** (if you've built one):
-        ```bash
-        ./deepshell [OPTIONS]
-        ```
+5. **Run DeepShell:**
+    ```bash
+    ./deepshell [OPTIONS]
+    ```
 
 ## 🏁 Getting Started: Initial Setup
 
@@ -197,6 +198,15 @@ An example configuration might look like this:
 }
 ```
 
+## 🚀 Performance Benefits
+
+The C version offers several advantages over interpreted languages:
+- **Faster startup time**: No interpreter overhead
+- **Smaller executable**: Single binary with minimal dependencies
+- **Lower memory usage**: More efficient memory management
+- **Better system integration**: Native system calls
+- **Extended timeouts**: 30-second request timeout for better compatibility with slower models
+
 ## 🤖 Supported LLMs
 
 ----
@@ -209,35 +219,40 @@ An example configuration might look like this:
 
 1.  Copy deepshell to your Environment path:
 ```bash
-nano .bashrc 
-export PATH=$PATH:/home/user/APPS-DIR
+sudo cp deepshell /usr/local/bin/
 ```
-2.  Create an aliases for ds & dsq for quick keyboard actions.
+
+2.  Create aliases for ds & dsq for quick keyboard actions:
 ```bash
 nano .bashrc 
 alias dsq="deepshell -q"
 alias ds="deepshell"
 alias dsi="deepshell -i"
 ```
-3.  Save .bashrc file.
+
+3.  Save .bashrc file:
 ```bash
 Ctrl+s & Ctrl+x
 ```
-4. Update your .bashrc file to use commands
+
+4.  Update your .bashrc file to use commands:
 ```bash
 source .bashrc
 ```
-5.  Use the alias `dsq` to quickly query the LLM
+
+5.  Use the alias `dsq` to quickly query the LLM:
 ```bash
 dsq What is the best LLM?
 ```
-6.  Use the alias `ds` to quickly access features with options
+
+6.  Use the alias `ds` to quickly access features with options:
 ```bash
 ds -v
 ```
-7.  Use the alias `dsi`to enter interactive mode
+
+7.  Use the alias `dsi` to enter interactive mode:
 ```bash
 dsi
 ```
 
-Happy Querying!
+Happy Querying!!!
