@@ -74,8 +74,9 @@ bool setup_config(bool is_direct_flag_call) {
             display_message("5. Toggle Markdown Rendering for Active Service", COLOR_BLUE);
             display_message("6. Set Interactive History Limit", COLOR_BLUE);
             display_message("7. Toggle Response Streaming", COLOR_BLUE);
-            display_message("8. View Active Configuration", COLOR_BLUE);
-            display_message("9. Delete Entire Configuration", COLOR_BLUE);
+            display_message("8. Toggle Progress Animation", COLOR_BLUE);
+            display_message("9. View Active Configuration", COLOR_BLUE);
+            display_message("0. Delete Entire Configuration", COLOR_BLUE);
             display_message("X. Exit Settings", COLOR_BLUE);
             
             display_message("\nEnter your choice: ", COLOR_YELLOW);
@@ -175,10 +176,16 @@ bool setup_config(bool is_direct_flag_call) {
                     }
                     break;
                 case 8:
+                    // Toggle Progress Animation
+                    if (toggle_progress_animation(config)) {
+                        save_config(config);
+                    }
+                    break;
+                case 9:
                     // View Active Configuration
                     show_active_configuration(config);
                     break;
-                case 9:
+                case 0:
                     // Delete Entire Configuration
                     if (delete_config_file()) {
                         display_message("Configuration deleted. Exiting settings.", COLOR_GREEN);
@@ -187,7 +194,7 @@ bool setup_config(bool is_direct_flag_call) {
                     }
                     break;
                 default:
-                    display_message("Invalid choice. Please enter a number between 1 and 9, or X to exit.", COLOR_RED);
+                    display_message("Invalid choice. Please enter a number between 1 and 0, or X to exit.", COLOR_RED);
                     break;
             }
         }
@@ -725,6 +732,9 @@ void show_active_configuration(config_t *config) {
     display_message("Response Streaming: ", COLOR_BLUE);
     printf("%s\n", config->enable_streaming ? "Enabled" : "Disabled");
     
+    display_message("Progress Animation: ", COLOR_BLUE);
+    printf("%s\n", config->show_progress_animation ? "Enabled" : "Disabled");
+    
     if (strlen(config->ollama.server_address) > 0) {
         display_message("\nOllama Configuration:", COLOR_GREEN);
         display_message("  Server Address: ", COLOR_BLUE);
@@ -760,5 +770,12 @@ bool jump_to_previous_llm(config_t *config) {
     strcpy(config->previous_active_llm_service, temp);
     display_message("Jumped to previous LLM service: ", COLOR_GREEN);
     printf("%s\n", config->active_llm_service);
+    return true;
+}
+
+bool toggle_progress_animation(config_t *config) {
+    config->show_progress_animation = !config->show_progress_animation;
+    display_message("Progress animation: ", COLOR_GREEN);
+    printf("%s\n", config->show_progress_animation ? "Enabled" : "Disabled");
     return true;
 } 

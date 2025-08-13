@@ -14,7 +14,7 @@
 #include <ctype.h>
 
 // Version
-#define DEEPSHELL_VERSION "1.1.0-C"
+#define DEEPSHELL_VERSION "1.1.2"
 
 // Configuration constants
 #define CONFIG_DIR_NAME ".deepshell"
@@ -106,6 +106,7 @@ bool change_active_model(config_t *config);
 bool switch_llm_service(config_t *config);
 bool toggle_markdown_rendering(config_t *config);
 bool toggle_streaming(config_t *config);
+bool toggle_progress_animation(config_t *config);
 bool set_history_limit(config_t *config);
 bool delete_config_file(void);
 void show_active_configuration(config_t *config);
@@ -135,6 +136,10 @@ json_object* create_gemini_payload(const char *model, const char *query,
 void display_message(const char *message, const char *color);
 void animate_progress(const char *status_text);
 void animate_progress_conditional(const char *status_text, bool show_animation);
+
+// Non-blocking progress animation controls
+void start_progress_animation(const char *status_text, bool enable_animation);
+void stop_progress_animation(void);
 void print_colored(const char *text, const char *color);
 void print_markdown(const char *text);
 char* get_home_directory(void);
@@ -171,6 +176,7 @@ typedef struct {
     bool model_change;
     bool version;
     bool help;
+    bool no_animation;
     char *query_text;
 } cli_args_t;
 

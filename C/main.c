@@ -223,6 +223,12 @@ int main(int argc, char *argv[]) {
     
     // Handle query
     if (args.query) {
+        // Temporarily disable animation if --no-animation flag is used
+        bool original_animation_setting = config->show_progress_animation;
+        if (args.no_animation) {
+            config->show_progress_animation = false;
+        }
+        
         // Send query to appropriate service
         if (strcmp(config->active_llm_service, LLM_SERVICE_OLLAMA) == 0) {
             if (strlen(config->ollama.server_address) == 0) {
@@ -274,6 +280,11 @@ int main(int argc, char *argv[]) {
             curl_global_cleanup();
             return 1;
         }
+        
+        // Restore original animation setting if it was temporarily changed
+        if (args.no_animation) {
+            config->show_progress_animation = original_animation_setting;
+        }
     } else {
         // No query provided and no other action flags
         print_help();
@@ -305,10 +316,12 @@ void print_help(void) {
     printf("  -v, --version            Show program's version number and exit\n");
     printf("  -j, --jump-llm           Quickly switch to the previously used LLM service\n");
     printf("  -m, --model-change       Change the default model for the active LLM service\n");
+    printf("      --no-animation       Disable progress animation for this run\n");
     printf("  -h, --help               Show this help message and exit\n\n");
     printf("Examples:\n");
     printf("  deepshell -q \"What is the capital of France?\"\n");
     printf("  deepshell -q \"Tell me about adam sandler's movies\"\n");
+    printf("  deepshell --no-animation -q \"Quick query without animation\"\n");
     printf("  deepshell -s\n");
     printf("  deepshell -i\n");
     printf("\nNote: Use quotes around queries containing spaces or special characters.\n");

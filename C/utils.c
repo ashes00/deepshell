@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <pthread.h>
+#include <stdatomic.h>
 
 void display_message(const char *message, const char *color) {
     if (color) {
@@ -255,10 +257,131 @@ void print_markdown(const char *text) {
 }
 
 void animate_progress(const char *status_text) {
-    // Quick progress indicator without delay
-    printf("\r%s %s", "⠋", status_text);
+    // Blue braille Dot Scanner Window (front + rear around status_text)
+    // Uses small braille dots (not periods), appears on both sides of the text
+    // and sweeps a denser "window" across a lighter drizzle.
+    static const char *DOTS_LIGHT[] = {"⠁","⠂","⠄","⡀","⢀","⠠","⠐","⠈"};
+    static const int DOTS_LIGHT_N = 8;
+    static const char *DOTS_DENSE[] = {"⠃","⠇","⡇","⣇","⣧","⣷","⣿","⣷","⣧","⣇","⡇","⠇","⠃"};
+    static const int DOTS_DENSE_N = 13;
+
+    const int left_width = 12;
+    const int right_width = 12;
+
+    for (int j = 0; j < 84; j++) {
+        int win = j % 16;
+
+        // Move to line start and set blue
+        printf("\r%s", COLOR_BLUE);
+
+        // Front (left) side
+        for (int i = 0; i < left_width; i++) {
+            if (i == win/2 || i == (win/2)+1) {
+                printf("%s", DOTS_DENSE[(j + i) % DOTS_DENSE_N]);
+            } else {
+                printf("%s", DOTS_LIGHT[(j + i) % DOTS_LIGHT_N]);
+            }
+        }
+
+        // Status text
+        printf(" %s ", status_text);
+
+        // Rear (right) side
+        for (int i = 0; i < right_width; i++) {
+            if (i == (15 - win)/2 || i == (15 - win)/2 + 1) {
+                printf("%s", DOTS_DENSE[(j + i * 2) % DOTS_DENSE_N]);
+            } else {
+                printf("%s", DOTS_LIGHT[(j + i * 2) % DOTS_LIGHT_N]);
+            }
+        }
+
+        // Reset color and clear to end of line for clean rendering
+        printf("%s\033[K", COLOR_RESET);
+        fflush(stdout);
+        usleep(85000);
+    }
+
+    printf("\n");
+}
+
+// --- Concurrent progress animation (Dot Scanner Window) ---
+static pthread_t g_progress_thread;
+static atomic_int g_progress_active = 0;
+static atomic_int g_progress_should_run = 0;
+static char g_progress_message[1024];
+
+static void* progress_animation_thread(void *arg) {
+    (void)arg;
+    // Dot Scanner Window frames (blue only)
+    static const char *DOTS_LIGHT[] = {"⠁","⠂","⠄","⡀","⢀","⠠","⠐","⠈"};
+    static const int DOTS_LIGHT_N = 8;
+    static const char *DOTS_DENSE[] = {"⠃","⠇","⡇","⣇","⣧","⣷","⣿","⣷","⣧","⣇","⡇","⠇","⠃"};
+    static const int DOTS_DENSE_N = 13;
+
+    const int left_width = 12;
+    const int right_width = 12;
+    int j = 0;
+    while (atomic_load(&g_progress_should_run)) {
+        int win = j % 16;
+        printf("\r%s", COLOR_BLUE);
+        // Left band
+        for (int i = 0; i < left_width; i++) {
+            if (i == win/2 || i == (win/2)+1) {
+                printf("%s", DOTS_DENSE[(j + i) % DOTS_DENSE_N]);
+            } else {
+                printf("%s", DOTS_LIGHT[(j + i) % DOTS_LIGHT_N]);
+            }
+        }
+        // Message
+        printf(" %s ", g_progress_message);
+        // Right band
+        for (int i = 0; i < right_width; i++) {
+            if (i == (15 - win)/2 || i == (15 - win)/2 + 1) {
+                printf("%s", DOTS_DENSE[(j + i * 2) % DOTS_DENSE_N]);
+            } else {
+                printf("%s", DOTS_LIGHT[(j + i * 2) % DOTS_LIGHT_N]);
+            }
+        }
+        // Clear rest of line, keep on same line
+        printf("%s\033[K", COLOR_RESET);
+        fflush(stdout);
+        usleep(85000);
+        j++;
+    }
+    return NULL;
+}
+
+void start_progress_animation(const char *status_text, bool enable_animation) {
+    if (!enable_animation) {
+        return;
+    }
+    if (atomic_load(&g_progress_active)) {
+        return; // already running
+    }
+    // Copy message (truncate safely)
+    size_t len = strlen(status_text);
+    if (len >= sizeof(g_progress_message)) len = sizeof(g_progress_message) - 1;
+    memcpy(g_progress_message, status_text, len);
+    g_progress_message[len] = '\0';
+
+    atomic_store(&g_progress_should_run, 1);
+    if (pthread_create(&g_progress_thread, NULL, progress_animation_thread, NULL) == 0) {
+        atomic_store(&g_progress_active, 1);
+    } else {
+        atomic_store(&g_progress_should_run, 0);
+    }
+}
+
+void stop_progress_animation(void) {
+    if (!atomic_load(&g_progress_active)) {
+        return;
+    }
+    atomic_store(&g_progress_should_run, 0);
+    pthread_join(g_progress_thread, NULL);
+    atomic_store(&g_progress_active, 0);
+    // Clear the animation line so next output starts cleanly
+    printf("\r\033[K");
     fflush(stdout);
-    printf("\n"); // Move to new line after progress
 }
 
 void animate_progress_conditional(const char *status_text, bool show_animation) {
@@ -538,6 +661,8 @@ cli_args_t parse_arguments(int argc, char *argv[]) {
             if (strlen(query_start) > 0) {
                 args.query_text = strdup(query_start);
             }
+        } else if (strcmp(argv[i], "--no-animation") == 0) {
+            args.no_animation = true;
         }
     }
     

@@ -125,6 +125,11 @@ config_t* load_config(void) {
         config->enable_streaming = json_object_get_boolean(enable_streaming);
     }
     
+    json_object *show_progress_animation;
+    if (json_object_object_get_ex(json_obj, "show_progress_animation", &show_progress_animation)) {
+        config->show_progress_animation = json_object_get_boolean(show_progress_animation);
+    }
+    
     if (json_object_object_get_ex(json_obj, "llm_services", &llm_services)) {
         // Parse Ollama config
         if (json_object_object_get_ex(llm_services, LLM_SERVICE_OLLAMA, &ollama_config)) {
@@ -223,6 +228,8 @@ bool save_config(config_t *config) {
                          json_object_new_int(config->interactive_history_limit));
     json_object_object_add(json_obj, "enable_streaming", 
                          json_object_new_boolean(config->enable_streaming));
+    json_object_object_add(json_obj, "show_progress_animation", 
+                         json_object_new_boolean(config->show_progress_animation));
     
     // Create llm_services object
     json_object *llm_services = json_object_new_object();

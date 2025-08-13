@@ -95,8 +95,8 @@ char* send_gemini_query(const char *api_key, const char *model_name,
     snprintf(status_message, sizeof(status_message), 
              "Using active LLM service: Gemini. Sending query to %s...", model_name);
     
-    // Show progress animation
-    animate_progress_conditional(status_message, config->show_progress_animation);
+    // Start concurrent progress animation
+    start_progress_animation(status_message, config->show_progress_animation);
     
     // Create JSON payload
     json_object *payload = create_gemini_payload(model_name, user_query, history, history_count);
@@ -119,6 +119,7 @@ char* send_gemini_query(const char *api_key, const char *model_name,
     json_object_put(payload);
     
     if (!success || !response) {
+        stop_progress_animation();
         display_message("Failed to send query to Gemini API.", COLOR_RED);
         return NULL;
     }
@@ -128,6 +129,7 @@ char* send_gemini_query(const char *api_key, const char *model_name,
     free(response);
     
     if (!response_obj) {
+        stop_progress_animation();
         display_message("Failed to parse response from Gemini API.", COLOR_RED);
         return NULL;
     }
@@ -136,9 +138,12 @@ char* send_gemini_query(const char *api_key, const char *model_name,
     json_object_put(response_obj);
     
     if (!response_text) {
+        stop_progress_animation();
         display_message("Failed to extract response from Gemini API.", COLOR_RED);
         return NULL;
     }
+    // Stop animation right before returning the text so caller can print immediately
+    stop_progress_animation();
     
     // The caller is responsible for printing and freeing response_text
     return response_text;

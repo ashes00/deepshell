@@ -4,7 +4,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99 -O2
 LDFLAGS = 
-LIBS = -lcurl -ljson-c
+LIBS = -lcurl -ljson-c -lpthread
 
 # Platform detection
 ifeq ($(OS),Windows_NT)
