@@ -14,7 +14,7 @@
 #include <ctype.h>
 
 // Version
-#define DEEPSHELL_VERSION "1.1.2"
+#define DEEPSHELL_VERSION "1.2.2"
 
 // Configuration constants
 #define CONFIG_DIR_NAME ".deepshell"

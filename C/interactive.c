@@ -1,9 +1,58 @@
 #include "deepshell.h"
 
+// Logo functions for interactive mode
+void print_interactive_logo() {
+    // Clear screen and move to top
+    printf("\033[2J\033[H");
+    
+    // Add some spacing
+    printf("\n\n");
+    
+    // DeepShell ASCII Art Logo - actually spelling out "DeepShell"
+    printf("%s", COLOR_CYAN);
+    printf("    ██████╗ ███████╗███████╗██████╗ ███████╗██╗  ██╗███████╗██╗     ██╗     \n");
+    printf("    ██╔══██╗██╔════╝██╔════╝██╔══██╗██╔════╝██║  ██║██╔════╝██║     ██║     \n");
+    printf("    ██║  ██║█████╗  █████╗  ██████╔╝███████╗███████║█████╗  ██║     ██║     \n");
+    printf("    ██║  ██║██╔══╝  ██╔══╝  ██╔═══╝ ╚════██║██╔══██║██╔══╝  ██║     ██║     \n");
+    printf("    ██████╔╝███████╗███████╗██║     ███████║██║  ██║███████╗███████╗███████╗\n");
+    printf("    ╚═════╝ ╚══════╝╚══════╝╚═╝     ╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝\n");
+    printf("%s", COLOR_RESET);
+    
+    printf("\n");
+    
+    // Subtitle with version info - PERFECT RECTANGLE
+    printf("%s", COLOR_BLUE);
+    printf("                    ╔══════════════════════════════════════════════════════════════╗\n");
+    printf("                    ║                  AI-Powered Shell Interface                  ║\n");
+    printf("                    ║                       Version %s                          ║\n", DEEPSHELL_VERSION);
+    printf("                    ╚══════════════════════════════════════════════════════════════╝\n");
+    printf("%s", COLOR_RESET);
+    
+    printf("\n");
+    
+    // Feature highlights
+    printf("%s", COLOR_GREEN);
+    printf("    ✨  Multi-LLM Support (Gemini, Ollama)    🔧  Interactive Mode    📝  Markdown Rendering\n");
+    printf("    🚀  Streaming Responses                    ⚙️   Easy Configuration    💾  Conversation History\n");
+    printf("%s", COLOR_RESET);
+    
+    printf("\n");
+    
+    // Status indicator
+    printf("%s", COLOR_YELLOW);
+    printf("    [*] DeepShell is ready to assist you with AI-powered interactions!\n");
+    printf("%s", COLOR_RESET);
+    
+    printf("\n");
+}
+
 bool start_interactive_session(config_t *config) {
     if (!config) {
         return false;
     }
+    
+    // Display the DeepShell logo for interactive mode
+    print_interactive_logo();
     
     display_message("\n--- DeepShell Interactive Mode ---", COLOR_GREEN);
     display_message("Type 'exit' or 'quit' to end the session.", COLOR_YELLOW);
