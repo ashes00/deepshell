@@ -32,7 +32,7 @@ void print_interactive_logo() {
     
     // Feature highlights
     printf("%s", COLOR_GREEN);
-    printf("    ✨  Multi-LLM Support (Gemini, Ollama)    🔧  Interactive Mode    📝  Markdown Rendering\n");
+    printf("    ✨  Multi-LLM Support (Ollama, Gemini, and OpenRouter)    🔧  Interactive Mode    📝  Markdown Rendering\n");
     printf("    🚀  Streaming Responses                    ⚙️   Easy Configuration    💾  Conversation History\n");
     printf("%s", COLOR_RESET);
     
@@ -74,6 +74,13 @@ bool start_interactive_session(config_t *config) {
         char *api_key = get_active_gemini_key_value(&config->gemini, nickname);
         if (!api_key) {
             display_message("No active Gemini API key found.", COLOR_RED);
+            return false;
+        }
+    } else if (strcmp(config->active_llm_service, LLM_SERVICE_OPENROUTER) == 0) {
+        char nickname[MAX_NICKNAME_LEN];
+        char *api_key = get_active_openrouter_key_value(&config->openrouter, nickname);
+        if (!api_key) {
+            display_message("No active OpenRouter API key found.", COLOR_RED);
             return false;
         }
     } else {
@@ -168,6 +175,35 @@ bool start_interactive_session(config_t *config) {
                     }
                     free(response_text);
                 }
+            }
+        } else if (strcmp(config->active_llm_service, LLM_SERVICE_OPENROUTER) == 0) {
+            char nickname[MAX_NICKNAME_LEN];
+            char *api_key = get_active_openrouter_key_value(&config->openrouter, nickname);
+            if (api_key) {
+                char *response_text = send_openrouter_query(api_key, 
+                                                config->openrouter.model, user_input, 
+                                                history, history_count, config);
+            query_success = (response_text != NULL);
+            if (query_success) {
+                // Print response
+                display_message("--- OpenRouter Response ---", COLOR_GREEN);
+                if (config->openrouter.render_markdown) {
+                    print_markdown(response_text);
+                } else {
+                    printf("%s\n", response_text);
+                }
+                display_message("---------------------------", COLOR_GREEN);
+            }
+            if (response_text) {
+                // Add model response to history
+                if (history_count < max_history_items) {
+                    strcpy(history[history_count].role, "model");
+                    strncpy(history[history_count].content, response_text, MAX_RESPONSE_LEN - 1);
+                    history[history_count].content[MAX_RESPONSE_LEN - 1] = '\0';
+                    history_count++;
+                }
+                free(response_text);
+            }
             }
         }
         

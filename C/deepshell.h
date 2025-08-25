@@ -14,7 +14,7 @@
 #include <ctype.h>
 
 // Version
-#define DEEPSHELL_VERSION "1.2.2"
+#define DEEPSHELL_VERSION "1.3.0"
 
 // Configuration constants
 #define CONFIG_DIR_NAME ".deepshell"
@@ -31,6 +31,7 @@
 // LLM Service constants
 #define LLM_SERVICE_OLLAMA "ollama"
 #define LLM_SERVICE_GEMINI "gemini"
+#define LLM_SERVICE_OPENROUTER "openrouter"
 #define MAX_SERVICES 10
 
 // Color codes for terminal output
@@ -46,6 +47,9 @@
 #define GEMINI_API_BASE_URL "https://generativelanguage.googleapis.com/v1beta"
 #define OLLAMA_API_CHAT "/api/chat"
 #define OLLAMA_API_TAGS "/api/tags"
+#define OPENROUTER_API_BASE_URL "https://openrouter.ai/api/v1"
+#define OPENROUTER_API_CHAT "/chat/completions"
+#define OPENROUTER_API_MODELS "/models"
 
 // Structures
 typedef struct {
@@ -68,6 +72,16 @@ typedef struct {
 } gemini_config_t;
 
 typedef struct {
+    api_key_t api_keys[MAX_SERVICES];
+    int api_key_count;
+    char active_api_key_nickname[MAX_NICKNAME_LEN];
+    char model[MAX_MODEL_NAME_LEN];
+    char site_url[MAX_SERVER_ADDR_LEN];    // For HTTP-Referer header
+    char site_name[MAX_NICKNAME_LEN];      // For X-Title header
+    bool render_markdown;
+} openrouter_config_t;
+
+typedef struct {
     char role[16];  // "user" or "model"
     char content[MAX_RESPONSE_LEN];
 } conversation_message_t;
@@ -77,6 +91,7 @@ typedef struct {
     char previous_active_llm_service[32];
     ollama_config_t ollama;
     gemini_config_t gemini;
+    openrouter_config_t openrouter;
     int interactive_history_limit;
     bool enable_streaming;
     bool show_progress_animation;
@@ -101,7 +116,13 @@ void free_config(config_t *config);
 bool setup_config(bool is_direct_flag_call);
 bool configure_ollama_service(config_t *config);
 bool configure_gemini_service(config_t *config);
+bool configure_openrouter_service(config_t *config);
 bool manage_gemini_api_keys(config_t *config);
+bool manage_openrouter_api_key(config_t *config);
+char* get_active_openrouter_key_value(const openrouter_config_t *openrouter_config, char *nickname);
+bool add_openrouter_api_key(openrouter_config_t *openrouter_config, const char *nickname, const char *key);
+bool remove_openrouter_api_key(openrouter_config_t *openrouter_config, const char *nickname);
+bool set_active_openrouter_api_key(openrouter_config_t *openrouter_config, const char *nickname);
 bool change_active_model(config_t *config);
 bool switch_llm_service(config_t *config);
 bool toggle_markdown_rendering(config_t *config);
@@ -130,7 +151,24 @@ bool add_gemini_api_key(gemini_config_t *gemini_config, const char *nickname, co
 bool remove_gemini_api_key(gemini_config_t *gemini_config, const char *nickname);
 bool set_active_gemini_api_key(gemini_config_t *gemini_config, const char *nickname);
 json_object* create_gemini_payload(const char *model, const char *query,
-                                  conversation_message_t *history, int history_count);
+                                 conversation_message_t *history, int history_count);
+
+// OpenRouter model structure
+typedef struct {
+    char id[MAX_MODEL_NAME_LEN];
+    char name[MAX_MODEL_NAME_LEN];
+    bool is_free;
+    double price_per_token;
+} openrouter_model_t;
+
+// OpenRouter functions
+bool fetch_openrouter_models(const char *api_key, char ***models, int *model_count);
+bool fetch_openrouter_models_detailed(const char *api_key, openrouter_model_t **models, int *model_count);
+char* send_openrouter_query(const char *api_key, const char *model_name,
+                           const char *user_query, conversation_message_t *history,
+                           int history_count, config_t *config);
+json_object* create_openrouter_payload(const char *model, const char *query,
+                                      conversation_message_t *history, int history_count);
 
 // Utility functions
 void display_message(const char *message, const char *color);
@@ -172,15 +210,25 @@ typedef struct {
     bool gemini_quota_check;
     bool switch_llm;
     bool show_config;
+    bool active_config;
     bool jump_llm;
     bool model_change;
+    bool export_config;
+    bool import_config;
     bool version;
     bool help;
     bool no_animation;
     char *query_text;
+    char *config_filename;
 } cli_args_t;
 
 cli_args_t parse_arguments(int argc, char *argv[]);
 void free_cli_args(cli_args_t *args);
+
+// Export/Import functions
+bool export_config_to_file(const config_t *config, const char *filename, const char *password);
+bool import_config_from_file(config_t *config, const char *filename, const char *password);
+char* get_downloads_path(void);
+char* get_password_input(const char *prompt, bool confirm);
 
 #endif // DEEPSHELL_H 

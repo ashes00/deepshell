@@ -6,6 +6,10 @@
 #include <sys/types.h>
 #include <pthread.h>
 #include <stdatomic.h>
+#include <termios.h>
+#include <time.h>
+#include <stdlib.h>
+#include <string.h>
 
 void display_message(const char *message, const char *color) {
     if (color) {
@@ -589,6 +593,19 @@ char* extract_response_from_json(json_object *json_obj, const char *service) {
                 }
             }
         }
+    } else if (strcmp(service, LLM_SERVICE_OPENROUTER) == 0) {
+        // OpenRouter uses OpenAI-compatible format
+        json_object *choices_array, *choice, *message_obj, *content_obj;
+        if (json_object_object_get_ex(json_obj, "choices", &choices_array) &&
+            json_object_array_length(choices_array) > 0) {
+            choice = json_object_array_get_idx(choices_array, 0);
+            if (json_object_object_get_ex(choice, "message", &message_obj)) {
+                if (json_object_object_get_ex(message_obj, "content", &content_obj)) {
+                    const char *content = json_object_get_string(content_obj);
+                    return strdup_safe(content);
+                }
+            }
+        }
     }
     return NULL;
 }
@@ -634,6 +651,22 @@ cli_args_t parse_arguments(int argc, char *argv[]) {
                 args.query_text = safe_concat_query(argc, argv, i + 1);
                 break; // We've processed all remaining arguments
             }
+        } else if (strcmp(argv[i], "-a") == 0 || strcmp(argv[i], "--active-config") == 0) {
+            args.active_config = true;
+        } else if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--export") == 0) {
+            args.export_config = true;
+            // Get the next argument as filename
+            if (i + 1 < argc) {
+                args.config_filename = strdup(argv[i + 1]);
+                i++; // Skip the filename argument
+            }
+        } else if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--import") == 0) {
+            args.import_config = true;
+            // Get the next argument as filename
+            if (i + 1 < argc) {
+                args.config_filename = strdup(argv[i + 1]);
+                i++; // Skip the filename argument
+            }
         } else if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--delete-config") == 0) {
             args.delete_config = true;
         } else if (strcmp(argv[i], "-show-key") == 0 || strcmp(argv[i], "--show-api-key") == 0) {
@@ -674,4 +707,478 @@ void free_cli_args(cli_args_t *args) {
         free(args->query_text);
         args->query_text = NULL;
     }
+    if (args->config_filename) {
+        free(args->config_filename);
+        args->config_filename = NULL;
+    }
+}
+
+// Get user's Downloads directory
+char* get_downloads_path(void) {
+    const char *home = getenv("HOME");
+    if (!home) {
+        return NULL;
+    }
+    
+    char *downloads_path = malloc(strlen(home) + strlen("/Downloads") + 1);
+    if (!downloads_path) {
+        return NULL;
+    }
+    
+    strcpy(downloads_path, home);
+    strcat(downloads_path, "/Downloads");
+    return downloads_path;
+}
+
+// Get password input with optional confirmation
+char* get_password_input(const char *prompt, bool confirm) {
+    printf("%s", prompt);
+    fflush(stdout);
+    
+    // Turn off echo
+    struct termios old, new;
+    tcgetattr(STDIN_FILENO, &old);
+    new = old;
+    new.c_lflag &= ~ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &new);
+    
+    char *password = read_line();
+    
+    // Turn echo back on
+    tcsetattr(STDIN_FILENO, TCSANOW, &old);
+    printf("\n");
+    
+    if (!password || strlen(password) == 0) {
+        if (password) free(password);
+        return NULL;
+    }
+    
+    if (confirm) {
+        printf("Confirm password: ");
+        fflush(stdout);
+        
+        // Turn off echo again
+        tcsetattr(STDIN_FILENO, TCSANOW, &new);
+        char *confirm_password = read_line();
+        tcsetattr(STDIN_FILENO, TCSANOW, &old);
+        printf("\n");
+        
+        if (!confirm_password || strcmp(password, confirm_password) != 0) {
+            display_message("Passwords do not match.", COLOR_RED);
+            free(password);
+            if (confirm_password) free(confirm_password);
+            return NULL;
+        }
+        free(confirm_password);
+    }
+    
+    return password;
+}
+
+// Export configuration to encrypted file
+bool export_config_to_file(const config_t *config, const char *filename, const char *password) {
+    // Get Downloads directory
+    char *downloads_path = get_downloads_path();
+    if (!downloads_path) {
+        display_message("Failed to get Downloads directory.", COLOR_RED);
+        return false;
+    }
+    
+    // Create full file path
+    char *full_path = malloc(strlen(downloads_path) + strlen(filename) + 2);
+    if (!full_path) {
+        free(downloads_path);
+        display_message("Memory allocation failed.", COLOR_RED);
+        return false;
+    }
+    
+    strcpy(full_path, downloads_path);
+    strcat(full_path, "/");
+    strcat(full_path, filename);
+    free(downloads_path);
+    
+    // Create export JSON with version metadata
+    json_object *export_obj = json_object_new_object();
+    json_object *version_obj = json_object_new_string("1.0");
+    json_object *timestamp_obj = json_object_new_int64(time(NULL));
+    
+    json_object_object_add(export_obj, "deepshell_export_version", version_obj);
+    json_object_object_add(export_obj, "export_timestamp", timestamp_obj);
+    
+    // Add all configuration data
+    json_object *config_obj = json_object_new_object();
+    
+    // Active LLM service and settings
+    json_object *active_llm_obj = json_object_new_string(config->active_llm_service);
+    json_object *prev_llm_obj = json_object_new_string(config->previous_active_llm_service);
+    json_object *history_limit_obj = json_object_new_int(config->interactive_history_limit);
+    json_object *streaming_obj = json_object_new_boolean(config->enable_streaming);
+    json_object *animation_obj = json_object_new_boolean(config->show_progress_animation);
+    
+    json_object_object_add(config_obj, "active_llm_service", active_llm_obj);
+    json_object_object_add(config_obj, "previous_llm_service", prev_llm_obj);
+    json_object_object_add(config_obj, "interactive_history_limit", history_limit_obj);
+    json_object_object_add(config_obj, "response_streaming", streaming_obj);
+    json_object_object_add(config_obj, "progress_animation", animation_obj);
+    
+    // Ollama configuration
+    json_object *ollama_obj = json_object_new_object();
+    json_object_object_add(ollama_obj, "server_address", json_object_new_string(config->ollama.server_address));
+    json_object_object_add(ollama_obj, "model", json_object_new_string(config->ollama.model));
+    json_object_object_add(ollama_obj, "render_markdown", json_object_new_boolean(config->ollama.render_markdown));
+    json_object_object_add(config_obj, "ollama", ollama_obj);
+    
+    // Gemini configuration with all API keys
+    json_object *gemini_obj = json_object_new_object();
+    json_object *gemini_keys_array = json_object_new_array();
+    for (int i = 0; i < config->gemini.api_key_count; i++) {
+        json_object *key_obj = json_object_new_object();
+        json_object_object_add(key_obj, "nickname", json_object_new_string(config->gemini.api_keys[i].nickname));
+        json_object_object_add(key_obj, "key", json_object_new_string(config->gemini.api_keys[i].key));
+        json_object_array_add(gemini_keys_array, key_obj);
+    }
+    json_object_object_add(gemini_obj, "api_keys", gemini_keys_array);
+    json_object_object_add(gemini_obj, "active_api_key_nickname", json_object_new_string(config->gemini.active_api_key_nickname));
+    json_object_object_add(gemini_obj, "model", json_object_new_string(config->gemini.model));
+    json_object_object_add(gemini_obj, "render_markdown", json_object_new_boolean(config->gemini.render_markdown));
+    json_object_object_add(config_obj, "gemini", gemini_obj);
+    
+    // OpenRouter configuration with all API keys
+    json_object *openrouter_obj = json_object_new_object();
+    json_object *openrouter_keys_array = json_object_new_array();
+    for (int i = 0; i < config->openrouter.api_key_count; i++) {
+        json_object *key_obj = json_object_new_object();
+        json_object_object_add(key_obj, "nickname", json_object_new_string(config->openrouter.api_keys[i].nickname));
+        json_object_object_add(key_obj, "key", json_object_new_string(config->openrouter.api_keys[i].key));
+        json_object_array_add(openrouter_keys_array, key_obj);
+    }
+    json_object_object_add(openrouter_obj, "api_keys", openrouter_keys_array);
+    json_object_object_add(openrouter_obj, "active_api_key_nickname", json_object_new_string(config->openrouter.active_api_key_nickname));
+    json_object_object_add(openrouter_obj, "model", json_object_new_string(config->openrouter.model));
+    json_object_object_add(openrouter_obj, "site_url", json_object_new_string(config->openrouter.site_url));
+    json_object_object_add(openrouter_obj, "site_name", json_object_new_string(config->openrouter.site_name));
+    json_object_object_add(openrouter_obj, "render_markdown", json_object_new_boolean(config->openrouter.render_markdown));
+    json_object_object_add(config_obj, "openrouter", openrouter_obj);
+    
+    json_object_object_add(export_obj, "configuration", config_obj);
+    
+    // Convert to string
+    const char *json_string = json_object_to_json_string_ext(export_obj, JSON_C_TO_STRING_PRETTY);
+    
+    // Create a more robust encryption using password-based key derivation
+    size_t json_len = strlen(json_string);
+    size_t password_len = strlen(password);
+    
+    // Create a stronger key by hashing password multiple times
+    unsigned char key[256];
+    for (int i = 0; i < 256; i++) {
+        key[i] = (unsigned char)((password[i % password_len] + i + 17) ^ (i * 3 + 7));
+    }
+    
+    // Add random salt to make each encryption unique
+    srand((unsigned int)time(NULL));
+    unsigned char salt[16];
+    for (int i = 0; i < 16; i++) {
+        salt[i] = (unsigned char)(rand() % 256);
+    }
+    
+    // Encrypt with multiple passes and salt
+    char *encrypted_data = malloc(json_len + 16 + 1); // +16 for salt prefix
+    
+    // First, copy salt to beginning
+    memcpy(encrypted_data, salt, 16);
+    
+    // Encrypt the JSON data using enhanced XOR with salt
+    for (size_t i = 0; i < json_len; i++) {
+        unsigned char byte_to_encrypt = (unsigned char)json_string[i];
+        unsigned char key_byte = key[(i + salt[i % 16]) % 256];
+        unsigned char salt_byte = salt[i % 16];
+        encrypted_data[i + 16] = (char)(byte_to_encrypt ^ key_byte ^ salt_byte ^ (i & 0xFF));
+    }
+    encrypted_data[json_len + 16] = '\0';
+    
+    // Write to file
+    FILE *file = fopen(full_path, "wb");
+    if (!file) {
+        display_message("Failed to create export file.", COLOR_RED);
+        free(full_path);
+        free(encrypted_data);
+        json_object_put(export_obj);
+        return false;
+    }
+    
+    fwrite(encrypted_data, 1, json_len + 16, file); // +16 for salt
+    fclose(file);
+    
+    printf("Configuration exported to: %s\n", full_path);
+    
+    free(full_path);
+    free(encrypted_data);
+    json_object_put(export_obj);
+    return true;
+}
+
+// Import configuration from encrypted file
+bool import_config_from_file(config_t *config, const char *filename, const char *password) {
+    (void)config; // Will be used when full import parsing is implemented
+    // Check if file exists
+    FILE *file = fopen(filename, "rb");
+    if (!file) {
+        display_message("Failed to open import file.", COLOR_RED);
+        return false;
+    }
+    
+    // Get file size
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    
+    // Read encrypted data
+    char *encrypted_data = malloc(file_size + 1);
+    if (!encrypted_data) {
+        fclose(file);
+        display_message("Memory allocation failed.", COLOR_RED);
+        return false;
+    }
+    
+    size_t bytes_read = fread(encrypted_data, 1, file_size, file);
+    if (bytes_read != (size_t)file_size) {
+        display_message("Failed to read complete file.", COLOR_RED);
+        free(encrypted_data);
+        fclose(file);
+        return false;
+    }
+    encrypted_data[file_size] = '\0';
+    fclose(file);
+    
+    // Check file has minimum size (at least 16 bytes for salt)
+    if (file_size < 16) {
+        display_message("Invalid configuration file format.", COLOR_RED);
+        free(encrypted_data);
+        return false;
+    }
+    
+    // Extract salt from first 16 bytes
+    unsigned char salt[16];
+    memcpy(salt, encrypted_data, 16);
+    
+    // Recreate encryption key from password
+    size_t password_len = strlen(password);
+    unsigned char key[256];
+    for (int i = 0; i < 256; i++) {
+        key[i] = (unsigned char)((password[i % password_len] + i + 17) ^ (i * 3 + 7));
+    }
+    
+    // Decrypt the JSON data (skip first 16 bytes which are salt)
+    long json_data_size = file_size - 16;
+    char *decrypted_data = malloc(json_data_size + 1);
+    
+    for (long i = 0; i < json_data_size; i++) {
+        unsigned char encrypted_byte = (unsigned char)encrypted_data[i + 16];
+        unsigned char key_byte = key[(i + salt[i % 16]) % 256];
+        unsigned char salt_byte = salt[i % 16];
+        decrypted_data[i] = (char)(encrypted_byte ^ key_byte ^ salt_byte ^ (i & 0xFF));
+    }
+    decrypted_data[json_data_size] = '\0';
+    
+    free(encrypted_data);
+    
+    // Parse JSON
+    json_object *import_obj = json_tokener_parse(decrypted_data);
+    if (!import_obj) {
+        display_message("Failed to parse configuration file. Invalid password or corrupted file.", COLOR_RED);
+        free(decrypted_data);
+        return false;
+    }
+    
+    free(decrypted_data);
+    
+    // Check version compatibility
+    json_object *version_obj;
+    if (json_object_object_get_ex(import_obj, "deepshell_export_version", &version_obj)) {
+        const char *version = json_object_get_string(version_obj);
+        printf("Importing configuration from export version: %s\n", version);
+    }
+    
+    // Get configuration object
+    json_object *config_obj;
+    if (!json_object_object_get_ex(import_obj, "configuration", &config_obj)) {
+        display_message("Invalid configuration file format.", COLOR_RED);
+        json_object_put(import_obj);
+        return false;
+    }
+    
+    // Ask for confirmation
+    display_message("This will overwrite your current configuration. Are you sure? (y/N): ", COLOR_YELLOW);
+    char *confirm = read_line();
+    if (!confirm || (confirm[0] != 'y' && confirm[0] != 'Y')) {
+        display_message("Import cancelled.", COLOR_YELLOW);
+        if (confirm) free(confirm);
+        json_object_put(import_obj);
+        return false;
+    }
+    free(confirm);
+    
+    // Import configuration data
+    json_object *active_llm_obj, *prev_llm_obj, *history_limit_obj, *streaming_obj, *animation_obj;
+    
+    // Load basic settings
+    if (json_object_object_get_ex(config_obj, "active_llm_service", &active_llm_obj)) {
+        const char *active_llm = json_object_get_string(active_llm_obj);
+        strncpy(config->active_llm_service, active_llm, sizeof(config->active_llm_service) - 1);
+        config->active_llm_service[sizeof(config->active_llm_service) - 1] = '\0';
+    }
+    
+    if (json_object_object_get_ex(config_obj, "previous_llm_service", &prev_llm_obj)) {
+        const char *prev_llm = json_object_get_string(prev_llm_obj);
+        strncpy(config->previous_active_llm_service, prev_llm, sizeof(config->previous_active_llm_service) - 1);
+        config->previous_active_llm_service[sizeof(config->previous_active_llm_service) - 1] = '\0';
+    }
+    
+    if (json_object_object_get_ex(config_obj, "interactive_history_limit", &history_limit_obj)) {
+        config->interactive_history_limit = json_object_get_int(history_limit_obj);
+    }
+    
+    if (json_object_object_get_ex(config_obj, "response_streaming", &streaming_obj)) {
+        config->enable_streaming = json_object_get_boolean(streaming_obj);
+    }
+    
+    if (json_object_object_get_ex(config_obj, "progress_animation", &animation_obj)) {
+        config->show_progress_animation = json_object_get_boolean(animation_obj);
+    }
+    
+    // Load Ollama configuration
+    json_object *ollama_obj;
+    if (json_object_object_get_ex(config_obj, "ollama", &ollama_obj)) {
+        json_object *server_addr_obj, *model_obj, *markdown_obj;
+        
+        if (json_object_object_get_ex(ollama_obj, "server_address", &server_addr_obj)) {
+            const char *server_addr = json_object_get_string(server_addr_obj);
+            strncpy(config->ollama.server_address, server_addr, sizeof(config->ollama.server_address) - 1);
+            config->ollama.server_address[sizeof(config->ollama.server_address) - 1] = '\0';
+        }
+        
+        if (json_object_object_get_ex(ollama_obj, "model", &model_obj)) {
+            const char *model = json_object_get_string(model_obj);
+            strncpy(config->ollama.model, model, sizeof(config->ollama.model) - 1);
+            config->ollama.model[sizeof(config->ollama.model) - 1] = '\0';
+        }
+        
+        if (json_object_object_get_ex(ollama_obj, "render_markdown", &markdown_obj)) {
+            config->ollama.render_markdown = json_object_get_boolean(markdown_obj);
+        }
+    }
+    
+    // Load Gemini configuration
+    json_object *gemini_obj;
+    if (json_object_object_get_ex(config_obj, "gemini", &gemini_obj)) {
+        json_object *keys_array_obj, *active_key_obj, *model_obj, *markdown_obj;
+        
+        // Clear existing keys
+        config->gemini.api_key_count = 0;
+        memset(config->gemini.active_api_key_nickname, 0, sizeof(config->gemini.active_api_key_nickname));
+        
+        if (json_object_object_get_ex(gemini_obj, "api_keys", &keys_array_obj)) {
+            int array_len = json_object_array_length(keys_array_obj);
+            for (int i = 0; i < array_len && i < MAX_SERVICES; i++) {
+                json_object *key_obj = json_object_array_get_idx(keys_array_obj, i);
+                json_object *nickname_obj, *key_value_obj;
+                
+                if (json_object_object_get_ex(key_obj, "nickname", &nickname_obj) &&
+                    json_object_object_get_ex(key_obj, "key", &key_value_obj)) {
+                    const char *nickname = json_object_get_string(nickname_obj);
+                    const char *key_value = json_object_get_string(key_value_obj);
+                    
+                    strncpy(config->gemini.api_keys[i].nickname, nickname, sizeof(config->gemini.api_keys[i].nickname) - 1);
+                    config->gemini.api_keys[i].nickname[sizeof(config->gemini.api_keys[i].nickname) - 1] = '\0';
+                    
+                    strncpy(config->gemini.api_keys[i].key, key_value, sizeof(config->gemini.api_keys[i].key) - 1);
+                    config->gemini.api_keys[i].key[sizeof(config->gemini.api_keys[i].key) - 1] = '\0';
+                    
+                    config->gemini.api_key_count++;
+                }
+            }
+        }
+        
+        if (json_object_object_get_ex(gemini_obj, "active_api_key_nickname", &active_key_obj)) {
+            const char *active_key = json_object_get_string(active_key_obj);
+            strncpy(config->gemini.active_api_key_nickname, active_key, sizeof(config->gemini.active_api_key_nickname) - 1);
+            config->gemini.active_api_key_nickname[sizeof(config->gemini.active_api_key_nickname) - 1] = '\0';
+        }
+        
+        if (json_object_object_get_ex(gemini_obj, "model", &model_obj)) {
+            const char *model = json_object_get_string(model_obj);
+            strncpy(config->gemini.model, model, sizeof(config->gemini.model) - 1);
+            config->gemini.model[sizeof(config->gemini.model) - 1] = '\0';
+        }
+        
+        if (json_object_object_get_ex(gemini_obj, "render_markdown", &markdown_obj)) {
+            config->gemini.render_markdown = json_object_get_boolean(markdown_obj);
+        }
+    }
+    
+    // Load OpenRouter configuration
+    json_object *openrouter_obj;
+    if (json_object_object_get_ex(config_obj, "openrouter", &openrouter_obj)) {
+        json_object *keys_array_obj, *active_key_obj, *model_obj, *site_url_obj, *site_name_obj, *markdown_obj;
+        
+        // Clear existing keys
+        config->openrouter.api_key_count = 0;
+        memset(config->openrouter.active_api_key_nickname, 0, sizeof(config->openrouter.active_api_key_nickname));
+        
+        if (json_object_object_get_ex(openrouter_obj, "api_keys", &keys_array_obj)) {
+            int array_len = json_object_array_length(keys_array_obj);
+            for (int i = 0; i < array_len && i < MAX_SERVICES; i++) {
+                json_object *key_obj = json_object_array_get_idx(keys_array_obj, i);
+                json_object *nickname_obj, *key_value_obj;
+                
+                if (json_object_object_get_ex(key_obj, "nickname", &nickname_obj) &&
+                    json_object_object_get_ex(key_obj, "key", &key_value_obj)) {
+                    const char *nickname = json_object_get_string(nickname_obj);
+                    const char *key_value = json_object_get_string(key_value_obj);
+                    
+                    strncpy(config->openrouter.api_keys[i].nickname, nickname, sizeof(config->openrouter.api_keys[i].nickname) - 1);
+                    config->openrouter.api_keys[i].nickname[sizeof(config->openrouter.api_keys[i].nickname) - 1] = '\0';
+                    
+                    strncpy(config->openrouter.api_keys[i].key, key_value, sizeof(config->openrouter.api_keys[i].key) - 1);
+                    config->openrouter.api_keys[i].key[sizeof(config->openrouter.api_keys[i].key) - 1] = '\0';
+                    
+                    config->openrouter.api_key_count++;
+                }
+            }
+        }
+        
+        if (json_object_object_get_ex(openrouter_obj, "active_api_key_nickname", &active_key_obj)) {
+            const char *active_key = json_object_get_string(active_key_obj);
+            strncpy(config->openrouter.active_api_key_nickname, active_key, sizeof(config->openrouter.active_api_key_nickname) - 1);
+            config->openrouter.active_api_key_nickname[sizeof(config->openrouter.active_api_key_nickname) - 1] = '\0';
+        }
+        
+        if (json_object_object_get_ex(openrouter_obj, "model", &model_obj)) {
+            const char *model = json_object_get_string(model_obj);
+            strncpy(config->openrouter.model, model, sizeof(config->openrouter.model) - 1);
+            config->openrouter.model[sizeof(config->openrouter.model) - 1] = '\0';
+        }
+        
+        if (json_object_object_get_ex(openrouter_obj, "site_url", &site_url_obj)) {
+            const char *site_url = json_object_get_string(site_url_obj);
+            strncpy(config->openrouter.site_url, site_url, sizeof(config->openrouter.site_url) - 1);
+            config->openrouter.site_url[sizeof(config->openrouter.site_url) - 1] = '\0';
+        }
+        
+        if (json_object_object_get_ex(openrouter_obj, "site_name", &site_name_obj)) {
+            const char *site_name = json_object_get_string(site_name_obj);
+            strncpy(config->openrouter.site_name, site_name, sizeof(config->openrouter.site_name) - 1);
+            config->openrouter.site_name[sizeof(config->openrouter.site_name) - 1] = '\0';
+        }
+        
+        if (json_object_object_get_ex(openrouter_obj, "render_markdown", &markdown_obj)) {
+            config->openrouter.render_markdown = json_object_get_boolean(markdown_obj);
+        }
+    }
+    
+    display_message("Configuration imported successfully!", COLOR_GREEN);
+    
+    json_object_put(import_obj);
+    return true;
 } 

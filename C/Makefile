@@ -19,7 +19,7 @@ else
 endif
 
 # Source files
-SOURCES = main.c settings.c gemini.c ollama.c utils.c config.c interactive.c
+SOURCES = main.c settings.c gemini.c ollama.c openrouter.c utils.c config.c interactive.c
 OBJECTS = $(SOURCES:.c=.o)
 
 # Default target

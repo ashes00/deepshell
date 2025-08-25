@@ -46,6 +46,7 @@ config_t* get_default_config(void) {
     config->show_progress_animation = true;
     config->gemini.render_markdown = true;
     config->ollama.render_markdown = true;
+    config->openrouter.render_markdown = true;
     
     return config;
 }
@@ -188,6 +189,56 @@ config_t* load_config(void) {
                 config->gemini.render_markdown = json_object_get_boolean(render_md);
             }
         }
+        
+        // Parse OpenRouter config
+        json_object *openrouter_config;
+        if (json_object_object_get_ex(llm_services, LLM_SERVICE_OPENROUTER, &openrouter_config)) {
+            json_object *api_keys, *active_key, *model, *site_url, *site_name, *render_md;
+            
+            if (json_object_object_get_ex(openrouter_config, "api_keys", &api_keys)) {
+                int key_count = json_object_array_length(api_keys);
+                config->openrouter.api_key_count = key_count > MAX_SERVICES ? MAX_SERVICES : key_count;
+                
+                for (int i = 0; i < config->openrouter.api_key_count; i++) {
+                    json_object *key_obj = json_object_array_get_idx(api_keys, i);
+                    json_object *nickname, *key;
+                    
+                    if (json_object_object_get_ex(key_obj, "nickname", &nickname)) {
+                        strncpy(config->openrouter.api_keys[i].nickname, json_object_get_string(nickname), MAX_NICKNAME_LEN - 1);
+                        config->openrouter.api_keys[i].nickname[MAX_NICKNAME_LEN - 1] = '\0';
+                    }
+                    
+                    if (json_object_object_get_ex(key_obj, "key", &key)) {
+                        strncpy(config->openrouter.api_keys[i].key, json_object_get_string(key), MAX_API_KEY_LEN - 1);
+                        config->openrouter.api_keys[i].key[MAX_API_KEY_LEN - 1] = '\0';
+                    }
+                }
+            }
+            
+            if (json_object_object_get_ex(openrouter_config, "active_api_key_nickname", &active_key)) {
+                strncpy(config->openrouter.active_api_key_nickname, json_object_get_string(active_key), MAX_NICKNAME_LEN - 1);
+                config->openrouter.active_api_key_nickname[MAX_NICKNAME_LEN - 1] = '\0';
+            }
+            
+            if (json_object_object_get_ex(openrouter_config, "model", &model)) {
+                strncpy(config->openrouter.model, json_object_get_string(model), MAX_MODEL_NAME_LEN - 1);
+                config->openrouter.model[MAX_MODEL_NAME_LEN - 1] = '\0';
+            }
+            
+            if (json_object_object_get_ex(openrouter_config, "site_url", &site_url)) {
+                strncpy(config->openrouter.site_url, json_object_get_string(site_url), MAX_SERVER_ADDR_LEN - 1);
+                config->openrouter.site_url[MAX_SERVER_ADDR_LEN - 1] = '\0';
+            }
+            
+            if (json_object_object_get_ex(openrouter_config, "site_name", &site_name)) {
+                strncpy(config->openrouter.site_name, json_object_get_string(site_name), MAX_NICKNAME_LEN - 1);
+                config->openrouter.site_name[MAX_NICKNAME_LEN - 1] = '\0';
+            }
+            
+            if (json_object_object_get_ex(openrouter_config, "render_markdown", &render_md)) {
+                config->openrouter.render_markdown = json_object_get_boolean(render_md);
+            }
+        }
     }
     
     json_object_put(json_obj);
@@ -265,6 +316,32 @@ bool save_config(config_t *config) {
     }
     json_object_object_add(gemini_config, "api_keys", api_keys);
     json_object_object_add(llm_services, LLM_SERVICE_GEMINI, gemini_config);
+    
+    // Add OpenRouter config
+    json_object *openrouter_config = json_object_new_object();
+    json_object_object_add(openrouter_config, "active_api_key_nickname", 
+                          json_object_new_string(config->openrouter.active_api_key_nickname));
+    json_object_object_add(openrouter_config, "model", 
+                          json_object_new_string(config->openrouter.model));
+    json_object_object_add(openrouter_config, "site_url", 
+                          json_object_new_string(config->openrouter.site_url));
+    json_object_object_add(openrouter_config, "site_name", 
+                          json_object_new_string(config->openrouter.site_name));
+    json_object_object_add(openrouter_config, "render_markdown", 
+                          json_object_new_boolean(config->openrouter.render_markdown));
+    
+    // Add API keys array
+    json_object *openrouter_api_keys = json_object_new_array();
+    for (int i = 0; i < config->openrouter.api_key_count; i++) {
+        json_object *key_obj = json_object_new_object();
+        json_object_object_add(key_obj, "nickname", 
+                             json_object_new_string(config->openrouter.api_keys[i].nickname));
+        json_object_object_add(key_obj, "key", 
+                             json_object_new_string(config->openrouter.api_keys[i].key));
+        json_object_array_add(openrouter_api_keys, key_obj);
+    }
+    json_object_object_add(openrouter_config, "api_keys", openrouter_api_keys);
+    json_object_object_add(llm_services, LLM_SERVICE_OPENROUTER, openrouter_config);
     
     json_object_object_add(json_obj, "llm_services", llm_services);
     
