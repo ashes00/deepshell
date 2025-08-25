@@ -15,6 +15,9 @@ Designed for developers, researchers, and power users, DeepShell abstracts away 
 *   **Multi-LLM Support:**
     *   Seamlessly connect to **Ollama** servers (local or remote).
     *   Integrate with the **Google Gemini API**.
+    *   Connect to **OpenRouter.ai** for access to 200+ LLM models from various providers.
+        *   Advanced model selection with pagination and sorting (free models first).
+        *   Multi-key management with nicknames for different OpenRouter accounts.
 *   **Conversational Memory & Customization:**
     *   Engage in multi-turn conversations using the **interactive mode** (`-i`).
     *   Set the conversation history limit (defaults to 25 turns).
@@ -28,11 +31,18 @@ Designed for developers, researchers, and power users, DeepShell abstracts away 
     *   Easily switch between configured LLM services (`-l`).
     *   Quickly jump back to the previously used LLM service (`-j`).
     *   List available models from your connected LLM service and change the default model per service (`-m`).
-*   **Advanced Gemini API Key Management:**
-    *   Store and manage multiple Gemini API keys with user-defined nicknames.
-    *   Easily add new keys or set an active key from your stored list (`-set-key`).
-    *   Display the currently active Gemini API key's nickname and value (`-show-key`).
-    *   Quickly check your Gemini API key status and get a link to your usage dashboard (`-gq`).
+*   **Advanced API Key Management:**
+    *   Store and manage multiple API keys with user-defined nicknames for both Gemini and OpenRouter.
+    *   Unified key management interface (`-set-key`) supporting both services.
+    *   Display the currently active API key for any LLM service (`-show-key`).
+    *   Quick active configuration summary showing current LLM, model, and API key (`-a`).
+    *   Gemini-specific quota checking and usage dashboard access (`-gq`).
+*   **Configuration Backup & Migration:**
+    *   Export complete configuration to encrypted files (`-b`) with password protection.
+    *   Import configuration from backup files (`-c`) with confirmation prompts.
+    *   Files saved to Downloads folder in secure binary format (unreadable as text).
+    *   Future-proof design with version metadata for cross-version compatibility.
+    *   Perfect for backing up settings, sharing configurations, or migrating between systems.
 *   **Intuitive User Experience:**
     *   Send queries directly from your command line (`-q`).
          *   Beautiful Markdown rendering for LLM responses in the terminal with native C implementation.
@@ -124,21 +134,38 @@ Your settings will be saved to `~/.deepshell/deepshell.conf`.
 ./deepshell -m (or --model-change)
 ```
 
-### Gemini-Specific Commands
+### API Key Management
 
-**Interactively manage Gemini API keys** (add, remove, set active)
+**Interactively manage API keys for LLM services** (Gemini or OpenRouter)
 ```bash
 ./deepshell -set-key (or --set-api-key)
 ```
 
-**Show the active Gemini API key nickname and value**
+**Show the active API key for current LLM service**
 ```bash
 ./deepshell -show-key (or --show-api-key)
+```
+
+**Quick summary of active LLM, model, and API key**
+```bash
+./deepshell -a (or --active-config)
 ```
 
 **Check Gemini API key status and get quota info**
 ```bash
 ./deepshell -gq (or --gemini-quota)
+```
+
+### Configuration Backup & Migration
+
+**Export configuration to encrypted backup file**
+```bash
+./deepshell -b mybackup.config (or --export mybackup.config)
+```
+
+**Import configuration from encrypted backup file**
+```bash
+./deepshell -c mybackup.config (or --import mybackup.config)
 ```
 
 ### Configuration & Info
@@ -175,25 +202,39 @@ DeepShell stores its configuration in a JSON file located at `~/.deepshell/deeps
 An example configuration might look like this:
 ```json
 {
-    "active_llm_service": "gemini",
-    "previous_active_llm_service": "ollama",
-    "llm_services": {
-        "ollama": {
-            "server_address": "http://localhost:11434",
-            "model": "llama3:latest",
-            "render_markdown": true
-        },
-        "gemini": {
-            "api_keys": [
-                {
-                    "nickname": "personal-key",
-                    "key": "BIsa8y..."
-                }
-            ],
-            "active_api_key_nickname": "personal-key",
-            "model": "models/gemini-1.5-flash",
-            "render_markdown": true
-        }
+    "active_llm_service": "openrouter",
+    "previous_active_llm_service": "gemini",
+    "interactive_history_limit": 25,
+    "enable_streaming": false,
+    "show_progress_animation": true,
+    "ollama": {
+        "server_address": "http://localhost:11434",
+        "model": "llama3:latest",
+        "render_markdown": true
+    },
+    "gemini": {
+        "api_keys": [
+            {
+                "nickname": "personal-key",
+                "key": "AIza..."
+            }
+        ],
+        "active_api_key_nickname": "personal-key",
+        "model": "models/gemini-1.5-flash",
+        "render_markdown": true
+    },
+    "openrouter": {
+        "api_keys": [
+            {
+                "nickname": "work-account",
+                "key": "sk-or-v1-..."
+            }
+        ],
+        "active_api_key_nickname": "work-account",
+        "model": "openai/gpt-4o",
+        "site_url": "https://myproject.com",
+        "site_name": "My Project",
+        "render_markdown": true
     }
 }
 ```
@@ -212,6 +253,11 @@ The C version offers several advantages over interpreted languages:
 ----
 *   **Ollama:** Connect to any Ollama instance serving models like Llama, Mistral, etc.
 *   **Google Gemini:** Access Gemini models (e.g., `gemini-1.5-pro`, `gemini-1.5-flash`) via the Google AI Studio API.
+*   **OpenRouter.ai:** Access 200+ models from providers like OpenAI, Anthropic, Meta, Google, and more:
+    *   GPT-4, GPT-3.5, Claude, Llama, Mixtral, Gemma, and many others
+    *   Free and paid models with transparent pricing
+    *   Advanced model browser with pagination and sorting (free models first)
+    *   Multi-account support with API key nicknames
 
 ---
 
