@@ -56,11 +56,12 @@ Designed for developers, researchers, and power users, DeepShell abstracts away 
     *   GCC compiler and build tools
     *   libcurl4-openssl-dev
     *   libjson-c-dev
+    *   libreadline-dev
 
 2. **Install Dependencies (Linux):**
     ```bash
     sudo apt-get update
-    sudo apt-get install -y build-essential libcurl4-openssl-dev libjson-c-dev
+    sudo apt-get install -y build-essential libcurl4-openssl-dev libjson-c-dev libreadline-dev
     ```
 
 3. **Clone the Repository:**
@@ -109,7 +110,7 @@ Your settings will be saved to `~/.deepshell/deepshell.conf`.
 **Query the active LLM**
 ```bash
 ./deepshell -q "What are the benefits of using a CLI for LLM interaction?"
-./deepshell --query "Write a python function to calculate a factorial"
+./deepshell --query "Write a function to calculate a factorial"
 ```
 
 ### LLM & Model Management

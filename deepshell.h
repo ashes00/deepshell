@@ -12,9 +12,11 @@
 #include <curl/curl.h>
 #include <json-c/json.h>
 #include <ctype.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 // Version
-#define DEEPSHELL_VERSION "1.3.0"
+#define DEEPSHELL_VERSION "1.3.1"
 
 // Configuration constants
 #define CONFIG_DIR_NAME ".deepshell"
@@ -119,6 +121,7 @@ bool configure_gemini_service(config_t *config);
 bool configure_openrouter_service(config_t *config);
 bool manage_gemini_api_keys(config_t *config);
 bool manage_openrouter_api_key(config_t *config);
+bool manage_api_keys_unified(config_t *config);
 char* get_active_openrouter_key_value(const openrouter_config_t *openrouter_config, char *nickname);
 bool add_openrouter_api_key(openrouter_config_t *openrouter_config, const char *nickname, const char *key);
 bool remove_openrouter_api_key(openrouter_config_t *openrouter_config, const char *nickname);

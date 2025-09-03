@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
         config = get_default_config();
     }
     
-    // Check if we need to run setup automatically (like Python version)
+    // Check if we need to run setup automatically
     bool needs_setup = false;
     if (!config_loaded) {
         // No config file found - setup needed for any command except help/version
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
         }
     }
     
-    // Auto-start setup if needed (following Python version behavior)
+    // Auto-start setup if needed
     if (needs_setup && !args.setup && !args.delete_config && !args.help && !args.version && !args.import_config && !args.export_config) {
         display_message("Configuration not found or no active LLM service. Running setup...", COLOR_YELLOW);
         if (!setup_config(false)) {
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         
-        // If setup was run and no query was provided, exit gracefully (like Python version)
+        // If setup was run and no query was provided, exit gracefully
         if (args.query_text == NULL && !args.interactive) {
             display_message("Setup complete. You can now run the program with a query or other options.", COLOR_GREEN);
             free_config(config);
@@ -500,25 +500,23 @@ void print_help(void) {
     printf("DeepShell: Query an LLM service from the command line.\n\n");
     printf("Usage: deepshell [OPTIONS] -q QUERY\n\n");
     printf("Options:\n");
-    printf("  -a, --active-config      Show active LLM service, model, and API key summary\n");
-    printf("  -b, --export FILENAME    Export configuration to encrypted file in Downloads folder\n");
-    printf("  -c, --import FILENAME    Import configuration from encrypted file\n");
-    printf("  -d, --delete-config      Delete the configuration file after confirmation\n");
-    printf("  -gq, --gemini-quota      Check Gemini API key status and quota information\n");
-    printf("  -h, --help               Show this help message and exit\n");
-    printf("  -i, --interactive        Start an interactive chat session\n");
-    printf("  -j, --jump-llm           Quickly switch to the previously used LLM service\n");
-    printf("  -l, --llm                Switch the active LLM service or configure services\n");
-    printf("  -m, --model-change       Change the default model for the active LLM service\n");
-    printf("      --no-animation       Disable progress animation for this run\n");
-    printf("  -q, --query QUERY        The query to send to the LLM\n");
-    printf("  -s, --setup              Run the interactive configuration setup process\n");
-    printf("  -set-key, --set-api-key  Interactively set/manage API keys for LLM services\n");
-    printf("  -show-config, --show-full-conf\n");
-    printf("                           Display the currently active LLM configuration details\n");
-    printf("  -show-key, --show-api-key\n");
-    printf("                           Show the active LLM service's API key nickname and value\n");
-    printf("  -v, --version            Show program's version number and exit\n\n");
+    printf("  -a, --active-config               Show active LLM service, model, and API key summary\n");
+    printf("  -b, --export FILENAME             Export configuration to encrypted file in Downloads folder\n");
+    printf("  -c, --import FILENAME             Import configuration from encrypted file\n");
+    printf("  -d, --delete-config               Delete the configuration file after confirmation\n");
+    printf("  -gq, --gemini-quota               Check Gemini API key status and quota information\n");
+    printf("  -h, --help                        Show this help message and exit\n");
+    printf("  -i, --interactive                 Start an interactive chat session\n");
+    printf("  -j, --jump-llm                    Quickly switch to the previously used LLM service\n");
+    printf("  -l, --llm                         Switch the active LLM service or configure services\n");
+    printf("  -m, --model-change                Change the default model for the active LLM service\n");
+    printf("      --no-animation                Disable progress animation for this run\n");
+    printf("  -q, --query QUERY                 The query to send to the LLM\n");
+    printf("  -s, --setup                       Run the interactive configuration setup process\n");
+    printf("  -set-key, --set-api-key           Interactively set/manage API keys for LLM services\n");
+    printf("  -show-config, --show-full-conf    Display the currently active LLM configuration details\n");
+    printf("  -show-key, --show-api-key         Show the active LLM service's API key nickname and value\n");
+    printf("  -v, --version                     Show program's version number and exit\n\n");
     printf("Examples:\n");
     printf("  deepshell -q \"What is the capital of France?\"\n");
     printf("  deepshell -q \"Tell me about adam sandler's movies\"\n");

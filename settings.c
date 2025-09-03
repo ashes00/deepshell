@@ -9,7 +9,7 @@ bool setup_config(bool is_direct_flag_call) {
         config_existed_before_load = false;
     }
     
-    // Handle initial setup (like Python version)
+    // Handle initial setup
     if (!config_existed_before_load && !is_direct_flag_call) {
         display_message("\n--- DeepShell Initial Configuration ---", COLOR_GREEN);
         display_message("No configuration file found. Let's set up your first LLM service.", COLOR_YELLOW);
@@ -72,14 +72,13 @@ bool setup_config(bool is_direct_flag_call) {
             display_message("Settings Menu:", COLOR_GREEN);
             display_message("1. Manage LLM Services (Add/Reconfigure)", COLOR_BLUE);
             display_message("2. Switch Active LLM Service", COLOR_BLUE);
-            display_message("3. Manage Gemini API Keys", COLOR_BLUE);
-            display_message("4. Manage OpenRouter API Key", COLOR_BLUE);
-            display_message("5. Change Model for Active Service", COLOR_BLUE);
-            display_message("6. Toggle Markdown Rendering for Active Service", COLOR_BLUE);
-            display_message("7. Set Interactive History Limit", COLOR_BLUE);
-            display_message("8. Toggle Response Streaming", COLOR_BLUE);
-            display_message("9. Toggle Progress Animation", COLOR_BLUE);
-            display_message("10. View Active Configuration", COLOR_BLUE);
+            display_message("3. Manage API Keys", COLOR_BLUE);
+            display_message("4. Change Model for Active Service", COLOR_BLUE);
+            display_message("5. Toggle Markdown Rendering for Active Service", COLOR_BLUE);
+            display_message("6. Set Interactive History Limit", COLOR_BLUE);
+            display_message("7. Toggle Response Streaming", COLOR_BLUE);
+            display_message("8. Toggle Progress Animation", COLOR_BLUE);
+            display_message("9. View Active Configuration", COLOR_BLUE);
             display_message("0. Delete Entire Configuration", COLOR_BLUE);
             display_message("X. Exit Settings", COLOR_BLUE);
             
@@ -158,46 +157,42 @@ bool setup_config(bool is_direct_flag_call) {
                     }
                     break;
                 case 3:
-                    // Manage Gemini API Keys
-                    manage_gemini_api_keys(config);
-                    break;
-                case 4:
-                    // Manage OpenRouter API Key
-                    if (manage_openrouter_api_key(config)) {
+                    // Manage API Keys
+                    if (manage_api_keys_unified(config)) {
                         save_config(config);
                     }
                     break;
-                case 5:
+                case 4:
                     // Change Model for Active Service
                     if (change_active_model(config)) {
                         save_config(config);
                     }
                     break;
-                case 6:
+                case 5:
                     // Toggle Markdown Rendering for Active Service
                     if (toggle_markdown_rendering(config)) {
                         save_config(config);
                     }
                     break;
-                case 7:
+                case 6:
                     // Set Interactive History Limit
                     if (set_history_limit(config)) {
                         save_config(config);
                     }
                     break;
-                case 8:
+                case 7:
                     // Toggle Response Streaming
                     if (toggle_streaming(config)) {
                         save_config(config);
                     }
                     break;
-                case 9:
+                case 8:
                     // Toggle Progress Animation
                     if (toggle_progress_animation(config)) {
                         save_config(config);
                     }
                     break;
-                case 10:
+                case 9:
                     // View Active Configuration
                     show_active_configuration(config);
                     break;
@@ -426,7 +421,19 @@ bool manage_gemini_api_keys(config_t *config) {
     display_message("\n--- Gemini API Key Management ---", COLOR_GREEN);
     
     while (true) {
-        display_message("\nCurrent API keys:", COLOR_BLUE);
+        // Show active API key details first
+        if (config->gemini.api_key_count > 0 && strlen(config->gemini.active_api_key_nickname) > 0) {
+            display_message("\nActive API Key:", COLOR_GREEN);
+            char *active_key = get_active_gemini_key_value(&config->gemini, config->gemini.active_api_key_nickname);
+            if (active_key) {
+                printf("  Nickname: %s\n", config->gemini.active_api_key_nickname);
+                printf("  API Key : %s\n", active_key);
+            } else {
+                display_message("  No active API key set", COLOR_YELLOW);
+            }
+        }
+        
+        display_message("\nAll API keys:", COLOR_BLUE);
         if (config->gemini.api_key_count == 0) {
             display_message("No API keys configured.", COLOR_YELLOW);
         } else {
@@ -443,9 +450,10 @@ bool manage_gemini_api_keys(config_t *config) {
         if (config->gemini.api_key_count > 0) {
             display_message("2. Set API key as active", COLOR_BLUE);
             display_message("3. Remove API key", COLOR_BLUE);
+            display_message("4. Show all API keys & nicknames", COLOR_BLUE);
         }
         display_message("0. Back to main menu", COLOR_BLUE);
-        // Add C and X options as in Python version
+        // Add additional options for key management
         bool has_active = (config->gemini.api_key_count > 0 && strlen(config->gemini.active_api_key_nickname) > 0);
         if (has_active) {
             display_message("C. Continue / Confirm selection", COLOR_BLUE);
@@ -559,6 +567,25 @@ bool manage_gemini_api_keys(config_t *config) {
                             display_message("Invalid selection.", COLOR_RED);
                         }
                     }
+                }
+                break;
+            case 4:
+                if (config->gemini.api_key_count > 0) {
+                    display_message("\n--- All Gemini API Keys ---", COLOR_GREEN);
+                    for (int i = 0; i < config->gemini.api_key_count; i++) {
+                        bool is_active = (strcmp(config->gemini.api_keys[i].nickname, 
+                                               config->gemini.active_api_key_nickname) == 0);
+                        display_message("", COLOR_BLUE);
+                        printf("Nickname: %s%s\n", config->gemini.api_keys[i].nickname, 
+                               is_active ? " (ACTIVE)" : "");
+                        printf("API Key : %s\n", config->gemini.api_keys[i].key);
+                        if (i < config->gemini.api_key_count - 1) {
+                            printf("---\n");
+                        }
+                    }
+                    printf("\n");
+                } else {
+                    display_message("No API keys configured.", COLOR_YELLOW);
                 }
                 break;
             default:
@@ -1067,7 +1094,19 @@ bool manage_openrouter_api_key(config_t *config) {
     display_message("\n--- OpenRouter API Key Management ---", COLOR_GREEN);
     
     while (true) {
-        display_message("\nCurrent API keys:", COLOR_BLUE);
+        // Show active API key details first
+        if (config->openrouter.api_key_count > 0 && strlen(config->openrouter.active_api_key_nickname) > 0) {
+            display_message("\nActive API Key:", COLOR_GREEN);
+            char *active_key = get_active_openrouter_key_value(&config->openrouter, config->openrouter.active_api_key_nickname);
+            if (active_key) {
+                printf("  Nickname: %s\n", config->openrouter.active_api_key_nickname);
+                printf("  API Key : %s\n", active_key);
+            } else {
+                display_message("  No active API key set", COLOR_YELLOW);
+            }
+        }
+        
+        display_message("\nAll API keys:", COLOR_BLUE);
         if (config->openrouter.api_key_count == 0) {
             display_message("No API keys configured.", COLOR_YELLOW);
         } else {
@@ -1084,6 +1123,7 @@ bool manage_openrouter_api_key(config_t *config) {
         if (config->openrouter.api_key_count > 0) {
             display_message("2. Set API key as active", COLOR_BLUE);
             display_message("3. Remove API key", COLOR_BLUE);
+            display_message("4. Show all API keys & nicknames", COLOR_BLUE);
         }
         display_message("0. Back to main menu", COLOR_BLUE);
         // Add C and X options as in Gemini version
@@ -1208,6 +1248,25 @@ bool manage_openrouter_api_key(config_t *config) {
                     display_message("No API keys to remove.", COLOR_YELLOW);
                 }
                 break;
+            case 4:
+                if (config->openrouter.api_key_count > 0) {
+                    display_message("\n--- All OpenRouter API Keys ---", COLOR_GREEN);
+                    for (int i = 0; i < config->openrouter.api_key_count; i++) {
+                        bool is_active = (strcmp(config->openrouter.api_keys[i].nickname, 
+                                               config->openrouter.active_api_key_nickname) == 0);
+                        display_message("", COLOR_BLUE);
+                        printf("Nickname: %s%s\n", config->openrouter.api_keys[i].nickname, 
+                               is_active ? " (ACTIVE)" : "");
+                        printf("API Key : %s\n", config->openrouter.api_keys[i].key);
+                        if (i < config->openrouter.api_key_count - 1) {
+                            printf("---\n");
+                        }
+                    }
+                    printf("\n");
+                } else {
+                    display_message("No API keys configured.", COLOR_YELLOW);
+                }
+                break;
             default:
                 display_message("Invalid choice.", COLOR_RED);
                 break;
@@ -1325,4 +1384,58 @@ bool set_active_openrouter_api_key(openrouter_config_t *openrouter_config, const
     
     display_message("API key nickname not found.", COLOR_RED);
     return false;
+}
+
+// Unified API Key Management - Service Selection Menu
+bool manage_api_keys_unified(config_t *config) {
+    if (!config) {
+        return false;
+    }
+    
+    display_message("\n--- API Key Management ---", COLOR_GREEN);
+    display_message("Select LLM service to manage API keys for:", COLOR_BLUE);
+    display_message("1. Gemini", COLOR_BLUE);
+    display_message("2. OpenRouter", COLOR_BLUE);
+    display_message("3. Ollama (no API key required)", COLOR_BLUE);
+    display_message("0. Back to main menu", COLOR_BLUE);
+    
+    display_message("\nEnter your choice (0-3): ", COLOR_YELLOW);
+    char *choice = read_line();
+    if (!choice) {
+        display_message("Invalid input.", COLOR_RED);
+        return false;
+    }
+    
+    int service_choice = atoi(choice);
+    free(choice);
+    
+    bool success = false;
+    switch (service_choice) {
+        case 1:
+            // Manage Gemini API Keys
+            success = manage_gemini_api_keys(config);
+            break;
+        case 2:
+            // Manage OpenRouter API Keys
+            success = manage_openrouter_api_key(config);
+            break;
+        case 3:
+            // Ollama information
+            display_message("\n--- Ollama Information ---", COLOR_GREEN);
+            display_message("Ollama does not require API keys.", COLOR_BLUE);
+            display_message("API keys are only needed for cloud-based services like Gemini and OpenRouter.", COLOR_BLUE);
+            display_message("To configure Ollama, use 'Manage LLM Services' from the main menu.", COLOR_YELLOW);
+            success = false; // No save needed
+            break;
+        case 0:
+            display_message("Returning to main menu.", COLOR_YELLOW);
+            success = false; // No save needed
+            break;
+        default:
+            display_message("Invalid choice.", COLOR_RED);
+            success = false;
+            break;
+    }
+    
+    return success;
 } 

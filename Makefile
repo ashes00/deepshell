@@ -4,7 +4,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99 -O2
 LDFLAGS = 
-LIBS = -lcurl -ljson-c -lpthread
+LIBS = -lcurl -ljson-c -lpthread -lreadline
 
 # Platform detection
 ifeq ($(OS),Windows_NT)
@@ -40,7 +40,7 @@ clean:
 # Install dependencies (Linux)
 install-deps-linux:
 	sudo apt-get update
-	sudo apt-get install -y libcurl4-openssl-dev libjson-c-dev
+	sudo apt-get install -y libcurl4-openssl-dev libjson-c-dev libreadline-dev
 
 # Install dependencies (Windows/MSYS2)
 install-deps-windows:

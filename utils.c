@@ -51,7 +51,7 @@ void print_markdown(const char *text) {
                 printf("┌─ Code Block ──────────────────────────────────────────────┐\n");
                 in_code_block = true;
                 ptr += 3;
-                // Skip language identifier (e.g., "markdown", "python", etc.)
+                // Skip language identifier (e.g., "markdown", "c", etc.)
                 while (*ptr && !isspace(*ptr) && *ptr != '\n') {
                     ptr++;
                 }
@@ -418,18 +418,12 @@ bool create_directory_if_not_exists(const char *path) {
 }
 
 char* read_line(void) {
-    char *line = NULL;
-    size_t len = 0;
-    ssize_t read = getline(&line, &len, stdin);
-    if (read != -1) {
-        // Remove newline
-        if (line[read - 1] == '\n') {
-            line[read - 1] = '\0';
-        }
-        return line;
+    char *line = readline("");
+    if (line && *line) {
+        // Add to history if non-empty
+        add_history(line);
     }
-    free(line);
-    return NULL;
+    return line;
 }
 
 void clear_screen(void) {
