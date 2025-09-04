@@ -6,3 +6,6 @@
 
 # Ignore any folder whose name is dist
 /dist
+
+# Ignore Misc
+FEATURE_LOG.md
