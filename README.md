@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>DeepShell C Version</h1>
+  <h1>DeepShell</h1>
   <p><strong>Your Universal LLM Command-Line Interface</strong></p>
   
   <img src="images/deepshell-i.png" alt="DeepShell Interactive Mode" width="600" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
