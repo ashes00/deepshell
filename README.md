@@ -1,6 +1,8 @@
 <div align="center">
   <h1>DeepShell C Version</h1>
   <p><strong>Your Universal LLM Command-Line Interface</strong></p>
+  
+  <img src="images/deepshell-i.png" alt="DeepShell Interactive Mode" width="600" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
 </div>
 
 [![C Version](https://img.shields.io/badge/C-Native-green.svg)](https://gcc.gnu.org/)
@@ -51,6 +53,26 @@ Designed for developers, researchers, and power users, DeepShell abstracts away 
     *   Well-formatted and alphabetized help messages (`-h`).
 
 ## 🛠️ Installation
+
+### 📦 **Quick Install (Recommended)**
+
+**For Ubuntu/Debian systems:**
+```bash
+# Download the appropriate .deb package for your system
+wget https://github.com/ashes00/deepshell/releases/download/v1.3.1/deepshell-1.3.1-ubuntu-20.04.deb
+
+# Install the package
+sudo dpkg -i deepshell-1.3.1-ubuntu-20.04.deb
+
+# Install any missing dependencies
+sudo apt-get install -f
+```
+
+**For other Linux distributions:**
+- Check the [releases page](https://github.com/ashes00/deepshell/releases) for pre-built packages
+- Look for packages matching your distribution and architecture
+
+### 🔨 **Build from Source**
 
 1. **Prerequisites:**
     *   GCC compiler and build tools
