@@ -1,12 +1,10 @@
-<div align="center">
-  <h1>DeepShell</h1>
-  <p><strong>Your Universal LLM Command-Line Interface</strong></p>
-  
-  <img src="images/deepshell-i.png" alt="DeepShell Interactive Mode" width="600" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-</div>
+# DeepShell
+
+**Your Universal LLM Command-Line Interface**
+
+![DeepShell Interactive Mode](images/deepshell-i.png)
 
 [![C Version](https://img.shields.io/badge/C-Native-green.svg)](https://gcc.gnu.org/)
-<!-- Add other badges as appropriate, e.g., license, build status, etc. -->
 
 **DeepShell** is a powerful and versatile command-line program written in C that seamlessly blends the familiar environment of your local shell with the immense knowledge and capabilities of Large Language Models (LLMs). Imagine having direct access to the world's most advanced AI models—from local Ollama instances to cloud-based services like Google's Gemini—all unified within a single, efficient native binary.
 
@@ -47,7 +45,7 @@ Designed for developers, researchers, and power users, DeepShell abstracts away 
     *   Perfect for backing up settings, sharing configurations, or migrating between systems.
 *   **Intuitive User Experience:**
     *   Send queries directly from your command line (`-q`).
-         *   Beautiful Markdown rendering for LLM responses in the terminal with native C implementation.
+        *   Beautiful Markdown rendering for LLM responses in the terminal with native C implementation.
     *   Engaging progress animation while waiting for the LLM.
     *   Clear, colored console output for enhanced readability.
     *   Well-formatted and alphabetized help messages (`-h`).
@@ -57,7 +55,8 @@ Designed for developers, researchers, and power users, DeepShell abstracts away 
 ### 📦 **Quick Install (Recommended)**
 
 **For Ubuntu/Debian systems:**
-```bash
+
+```
 # Download the appropriate .deb package for your system
 wget https://github.com/ashes00/deepshell/releases/download/v1.3.1/deepshell-1.3.1-ubuntu-20.04.deb
 
@@ -69,48 +68,42 @@ sudo apt-get install -f
 ```
 
 **For other Linux distributions:**
-- Check the [releases page](https://github.com/ashes00/deepshell/releases) for pre-built packages
-- Look for packages matching your distribution and architecture
 
-### 🔨 **Build from Source**
+*   Check the [releases page](https://github.com/ashes00/deepshell/releases) for pre-built packages
+*   Look for packages matching your distribution and architecture
 
-1. **Prerequisites:**
-    *   GCC compiler and build tools
-    *   libcurl4-openssl-dev
-    *   libjson-c-dev
-    *   libreadline-dev
+### 📦 **RPM Package Installation (RHEL/CentOS/Fedora)**
 
-2. **Install Dependencies (Linux):**
-    ```bash
-    sudo apt-get update
-    sudo apt-get install -y build-essential libcurl4-openssl-dev libjson-c-dev libreadline-dev
-    ```
+**For RPM-based systems (RHEL, CentOS, Fedora, openSUSE):**
 
-3. **Clone the Repository:**
-    ```bash
-    git clone https://github.com/ashes00/deepshell.git
-    cd deepshell
-    ```
+**Install the RPM package:**
 
-4. **Build DeepShell:**
-    ```bash
-    make
-    ```
+1. **Visit the releases page:** [https://github.com/ashes00/deepshell/releases](https://github.com/ashes00/deepshell/releases)
+2. **Download the appropriate RPM package** for your system architecture
+3. **Import the GPG key and install:**
 
-5. **Run DeepShell:**
-    ```bash
-    ./deepshell [OPTIONS]
-    ```
+```
+# Download and import the GPG key
+curl -fsSL https://github.com/ashes00/deepshell/releases/download/v1.3.1/deepshell-public.key | sudo rpm --import -
+
+# Install the downloaded RPM package (replace with your actual filename)
+sudo rpm -i deepshell-*.rpm
+
+# Verify installation
+deepshell --version
+```
+
 
 ## 🏁 Getting Started: Initial Setup
 
 The first time you run DeepShell, or anytime you want to manage settings, use the `-s` or `--setup` flag:
 
-```bash
+```
 ./deepshell -s
 ```
 
 This launches a comprehensive, interactive menu that allows you to:
+
 1.  **Add or Reconfigure LLM Services:**
     *   **For Ollama:** Enter your server address (e.g., `http://localhost:11434`) and select a default model from those available on your server.
     *   **For Gemini:** Manage your API keys (add, remove, set active) and select a default model from the Gemini API.
@@ -122,7 +115,6 @@ This launches a comprehensive, interactive menu that allows you to:
 7.  **Set Interactive History Limit:** Change the number of conversation turns remembered in interactive mode.
 8.  **Toggle Response Streaming:** Enable or disable streaming responses. (Note: Markdown is not supported in streaming mode).
 
-
 Your settings will be saved to `~/.deepshell/deepshell.conf`.
 
 ## 💻 Usage & Command-Line Options
@@ -130,7 +122,8 @@ Your settings will be saved to `~/.deepshell/deepshell.conf`.
 ### Primary Usage
 
 **Query the active LLM**
-```bash
+
+```
 ./deepshell -q "What are the benefits of using a CLI for LLM interaction?"
 ./deepshell --query "Write a function to calculate a factorial"
 ```
@@ -138,83 +131,98 @@ Your settings will be saved to `~/.deepshell/deepshell.conf`.
 ### LLM & Model Management
 
 **Enter the main settings menu**
-```bash
+
+```
 ./deepshell -s (or --setup)
 ```
 
 **Switch active service or configure services** (shortcut to a settings sub-menu)
-```bash
+
+```
 ./deepshell -l (or --llm)
 ```
 
 **Quickly jump to the previously used LLM service**
-```bash
+
+```
 ./deepshell -j (or --jump-llm)
 ```
 
 **Change the default model for the active service** (shortcut)
-```bash
+
+```
 ./deepshell -m (or --model-change)
 ```
 
 ### API Key Management
 
 **Interactively manage API keys for LLM services** (Gemini or OpenRouter)
-```bash
+
+```
 ./deepshell -set-key (or --set-api-key)
 ```
 
 **Show the active API key for current LLM service**
-```bash
+
+```
 ./deepshell -show-key (or --show-api-key)
 ```
 
 **Quick summary of active LLM, model, and API key**
-```bash
+
+```
 ./deepshell -a (or --active-config)
 ```
 
 **Check Gemini API key status and get quota info**
-```bash
+
+```
 ./deepshell -gq (or --gemini-quota)
 ```
 
 ### Configuration Backup & Migration
 
 **Export configuration to encrypted backup file**
-```bash
+
+```
 ./deepshell -b mybackup.config (or --export mybackup.config)
 ```
 
 **Import configuration from encrypted backup file**
-```bash
+
+```
 ./deepshell -c mybackup.config (or --import mybackup.config)
 ```
 
 ### Configuration & Info
 
 **Display the currently active configuration details**
-```bash
+
+```
 ./deepshell -show-config (or --show-full-conf)
 ```
 
 **Delete the entire configuration file** (use with caution!)
-```bash
+
+```
 ./deepshell -d (or --delete-config)
 ```
 
 **Show the help message**
-```bash
+
+```
 ./deepshell -h (or --help)
 ```
 
 **Show the program's version**
-```bash
+
+```
 ./deepshell -v (or --version)
 ```
 
 **Start an interactive chat session**
-```bash
+
+```
 ./deepshell -i (or --interactive)
 ```
 
@@ -223,7 +231,8 @@ Your settings will be saved to `~/.deepshell/deepshell.conf`.
 DeepShell stores its configuration in a JSON file located at `~/.deepshell/deepshell.conf`. While you can view this file, it's recommended to manage settings through DeepShell's command-line options for safety and ease of use.
 
 An example configuration might look like this:
-```json
+
+```
 {
     "active_llm_service": "openrouter",
     "previous_active_llm_service": "gemini",
@@ -265,15 +274,17 @@ An example configuration might look like this:
 ## 🚀 Performance Benefits
 
 The C version offers several advantages over interpreted languages:
-- **Faster startup time**: No interpreter overhead
-- **Smaller executable**: Single binary with minimal dependencies
-- **Lower memory usage**: More efficient memory management
-- **Better system integration**: Native system calls
-- **Extended timeouts**: 30-second request timeout for better compatibility with slower models
+
+*   **Faster startup time**: No interpreter overhead
+*   **Smaller executable**: Single binary with minimal dependencies
+*   **Lower memory usage**: More efficient memory management
+*   **Better system integration**: Native system calls
+*   **Extended timeouts**: 30-second request timeout for better compatibility with slower models
 
 ## 🤖 Supported LLMs
 
-----
+---
+
 *   **Ollama:** Connect to any Ollama instance serving models like Llama, Mistral, etc.
 *   **Google Gemini:** Access Gemini models (e.g., `gemini-1.5-pro`, `gemini-1.5-flash`) via the Google AI Studio API.
 *   **OpenRouter.ai:** Access 200+ models from providers like OpenAI, Anthropic, Meta, Google, and more:
@@ -286,42 +297,163 @@ The C version offers several advantages over interpreted languages:
 
 ## ⚙️ Pro Tip
 
-1.  Copy deepshell to your Environment path:
-```bash
-sudo cp deepshell /usr/local/bin/
+Copy deepshell to your Environment path:
+
+Create aliases for ds & dsq for quick keyboard actions:
+
+Save .bashrc file:
+
+Update your .bashrc file to use commands:
+
+Use the alias `dsq` to quickly query the LLM:
+
+Use the alias `ds` to quickly access features with options:
+
+Use the alias `dsi` to enter interactive mode:
+
+Happy Querying!!!
+
+```
+dsi
 ```
 
-2.  Create aliases for ds & dsq for quick keyboard actions:
-```bash
+```
+ds -v
+```
+
+```
+dsq What is the best LLM?
+```
+
+```
+source .bashrc
+```
+
+```
+Ctrl+s & Ctrl+x
+```
+
+```
 nano .bashrc 
 alias dsq="deepshell -q"
 alias ds="deepshell"
 alias dsi="deepshell -i"
 ```
 
-3.  Save .bashrc file:
-```bash
-Ctrl+s & Ctrl+x
+```
+sudo cp deepshell /usr/local/bin/
 ```
 
-4.  Update your .bashrc file to use commands:
+## 🔧 Developer Guide
+
+### Prerequisites
+
+Before building DeepShell from source, ensure you have the following dependencies installed:
+
+**Required Libraries:**
+- `gcc` - C compiler and build tools
+- `libcurl4-openssl-dev` - For HTTP/HTTPS requests
+- `libjson-c-dev` - For JSON parsing and manipulation
+- `libreadline-dev` - For interactive command-line features
+
+### Building from Source
+
+**1. Clone the Repository:**
+
 ```bash
-source .bashrc
+git clone https://github.com/ashes00/deepshell.git
+cd deepshell
 ```
 
-5.  Use the alias `dsq` to quickly query the LLM:
+**2. Install Dependencies:**
+
+**For Ubuntu/Debian systems:**
 ```bash
-dsq What is the best LLM?
+sudo apt-get update
+sudo apt-get install -y libcurl4-openssl-dev libjson-c-dev libreadline-dev gcc make
 ```
 
-6.  Use the alias `ds` to quickly access features with options:
+**For RHEL/CentOS/Fedora systems:**
 ```bash
-ds -v
+sudo yum install -y libcurl-devel json-c-devel readline-devel gcc make
+# or for newer versions:
+sudo dnf install -y libcurl-devel json-c-devel readline-devel gcc make
 ```
 
-7.  Use the alias `dsi` to enter interactive mode:
+**For openSUSE systems:**
 ```bash
-dsi
+sudo zypper install -y libcurl-devel libjson-c-devel readline-devel gcc make
 ```
+
+**3. Build DeepShell:**
+
+```bash
+make
+```
+
+**4. Run DeepShell:**
+
+```bash
+./deepshell --help
+```
+
+### Development Commands
+
+**Clean build artifacts:**
+```bash
+make clean
+```
+
+**Build with debug information:**
+```bash
+make debug
+```
+
+**Build optimized release version:**
+```bash
+make release
+```
+
+**Install dependencies automatically (Linux only):**
+```bash
+make install-deps-linux
+```
+
+### Project Structure
+
+The DeepShell C codebase consists of the following main components:
+
+- `main.c` - Entry point and command-line argument parsing
+- `settings.c` - Configuration management and settings menu
+- `gemini.c` - Google Gemini API integration
+- `ollama.c` - Ollama server integration
+- `openrouter.c` - OpenRouter.ai API integration
+- `interactive.c` - Interactive chat mode implementation
+- `utils.c` - Utility functions and helpers
+- `config.c` - Configuration file I/O operations
+- `deepshell.h` - Header file with function declarations and constants
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes and test thoroughly
+4. Commit your changes (`git commit -m 'Add some amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
+
+### Build Requirements Summary
+
+| Component | Purpose | Package Name (Ubuntu/Debian) |
+|-----------|---------|------------------------------|
+| C Compiler | Compile source code | `gcc` |
+| Build Tools | Make system | `make` |
+| HTTP Library | API requests | `libcurl4-openssl-dev` |
+| JSON Library | JSON parsing | `libjson-c-dev` |
+| Readline Library | Interactive features | `libreadline-dev` |
+
+### License
+
+This project is licensed under the **UNLICENSE**.
 
 Happy Querying!!!
