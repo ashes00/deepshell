@@ -429,6 +429,7 @@ bool start_interactive_session(config_t *config) {
             if (api_key) {
                 char *response_text = send_gemini_query(api_key, config->gemini.model, 
                                                 user_input, history, history_count, config);
+                query_success = (response_text != NULL);
                 if (query_success) {
                     display_message("--- Gemini Response ---", COLOR_GREEN);
                     if (config->gemini.render_markdown) {

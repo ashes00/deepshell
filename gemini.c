@@ -264,28 +264,30 @@ json_object* create_gemini_payload(const char *model, const char *query,
         return NULL;
     }
     
-    // Add conversation history
-    for (int i = 0; i < history_count; i++) {
-        json_object *content = json_object_new_object();
-        if (!content) {
-            continue;
+    // Add conversation history if provided
+    if (history && history_count > 0) {
+        for (int i = 0; i < history_count; i++) {
+            json_object *content = json_object_new_object();
+            if (!content) {
+                continue;
+            }
+            
+            json_object *parts = json_object_new_array();
+            if (!parts) {
+                json_object_put(content);
+                continue;
+            }
+            
+            json_object *part = json_object_new_object();
+            if (part) {
+                json_object_object_add(part, "text", json_object_new_string(history[i].content));
+                json_object_array_add(parts, part);
+            }
+            json_object_object_add(content, "parts", parts);
+            // Add the required role field
+            json_object_object_add(content, "role", json_object_new_string(history[i].role));
+            json_object_array_add(contents, content);
         }
-        
-        json_object *parts = json_object_new_array();
-        if (!parts) {
-            json_object_put(content);
-            continue;
-        }
-        
-        json_object *part = json_object_new_object();
-        if (part) {
-            json_object_object_add(part, "text", json_object_new_string(history[i].content));
-            json_object_array_add(parts, part);
-        }
-        json_object_object_add(content, "parts", parts);
-        // Add the required role field
-        json_object_object_add(content, "role", json_object_new_string(history[i].role));
-        json_object_array_add(contents, content);
     }
     
     // Add current query
