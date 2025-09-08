@@ -23,6 +23,7 @@ Designed for developers, researchers, and power users, DeepShell abstracts away 
     *   Set the conversation history limit (defaults to 25 turns).
     *   Toggle response streaming for immediate (plain-text) or complete (Markdown-rendered) output. Streaming is disabled by default to preserve formatting.
     *   Enable or disable Markdown rendering for each LLM service individually.
+    *   **Save responses to markdown files** directly from interactive mode using the `save` command.
 *   **Unified & Interactive Configuration:**
     *   A central, user-friendly settings menu (`-s`) guides you through all configuration tasks.
     *   Manages LLM service details, including server addresses (Ollama) and API keys (Gemini).
@@ -225,6 +226,119 @@ Your settings will be saved to `~/.deepshell/deepshell.conf`.
 ```
 ./deepshell -i (or --interactive)
 ```
+
+## 💬 Interactive Mode Commands
+
+When using interactive mode (`-i`), you have access to special commands in addition to your regular queries:
+
+### Available Commands
+
+**Exit the interactive session:**
+```
+exit
+quit
+```
+
+**Save the last response to a markdown file:**
+```
+save [filename]
+```
+
+**Open a text file as input query:**
+```
+open [filepath]
+```
+
+**Show help for all interactive commands:**
+```
+help
+```
+
+### Save Command Examples
+
+**Save with automatic filename prompt:**
+```
+> What are the benefits of using a CLI for LLM interaction?
+[LLM provides detailed response with markdown formatting]
+
+> save
+Enter filename (.md extension will be added automatically): research-notes
+Save successful!
+File saved to: /home/user/Downloads/research-notes.md
+```
+
+**Save with direct filename:**
+```
+> Explain the concept of machine learning
+[LLM provides detailed response]
+
+> save ml-explanation
+Save successful!
+File saved to: /home/user/Downloads/ml-explanation.md
+```
+
+**Save with existing .md extension:**
+```
+> How do neural networks work?
+[LLM provides detailed response]
+
+> save neural-networks-guide.md
+Save successful!
+File saved to: /home/user/Downloads/neural-networks-guide.md
+```
+
+### Save Command Features
+
+- **Auto .md extension**: Automatically adds `.md` extension if not provided
+- **File validation**: Prevents invalid characters and empty filenames
+- **Overwrite protection**: Asks for confirmation before overwriting existing files
+- **Smart directory**: Saves to Downloads folder (falls back to home directory)
+- **Raw markdown**: Preserves exact formatting as received from the LLM
+- **Error handling**: Prevents conversion if no previous response exists
+
+### Open Command Examples
+
+**Open file with instructions:**
+```
+> open /home/user/data.txt
+Enter instructions for the LLM about this data: Please analyze this data and tell me if it's correct
+[LLM processes the file content with your instructions]
+```
+
+**Open file with default analysis:**
+```
+> open ../documents/notes.md
+Enter instructions for the LLM about this data: [Press Enter for default]
+[LLM processes with "Please analyze this data"]
+```
+
+### Open Command Features
+
+- **File validation**: Checks if file exists, is readable, and is text-based
+- **Size limit**: Maximum 25MB file size to prevent memory issues
+- **Path support**: Both absolute and relative file paths
+- **User instructions**: Prompt for custom instructions on how to process the file
+- **Default instructions**: "Please analyze this data" if no instructions provided
+- **Binary detection**: Rejects non-text files (images, executables, etc.)
+- **Error handling**: Clear error messages for all failure cases
+
+### Help Command Features
+
+- **Comprehensive reference**: Complete list of all interactive mode commands
+- **Detailed descriptions**: Usage information and examples for each command
+- **Professional formatting**: Clean, easy-to-read help menu
+- **Usage tips**: Best practices and guidance for interactive mode
+
+### Use Cases
+
+- **Research documentation**: Save important findings and explanations
+- **Knowledge base building**: Create markdown files for future reference
+- **Content creation**: Export formatted responses for articles or documentation
+- **Learning materials**: Save educational content for later review
+- **File analysis**: Process documents, code, or data files with custom instructions
+- **Code review**: Analyze source code files for bugs, improvements, or explanations
+- **Document processing**: Extract insights from text files, logs, or reports
+- **Interactive help**: Get comprehensive command reference anytime during sessions
 
 ## ⚙️ Configuration File
 

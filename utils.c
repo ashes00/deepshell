@@ -724,6 +724,242 @@ char* get_downloads_path(void) {
     return downloads_path;
 }
 
+// Save last response to markdown file
+bool save_response_to_file(const char *response_text, const char *filename) {
+    if (!response_text || !filename) {
+        return false;
+    }
+    
+    // Get Downloads directory first, fallback to home directory
+    char *downloads_path = get_downloads_path();
+    char *target_dir = downloads_path;
+    
+    if (!target_dir) {
+        // Fallback to home directory
+        target_dir = get_home_directory();
+        if (!target_dir) {
+            display_message("Failed to get home directory.", COLOR_RED);
+            return false;
+        }
+    }
+    
+    // Create full file path
+    char *full_path = malloc(strlen(target_dir) + strlen(filename) + 2);
+    if (!full_path) {
+        display_message("Memory allocation failed.", COLOR_RED);
+        if (downloads_path) free(downloads_path);
+        if (!downloads_path) free(target_dir);
+        return false;
+    }
+    
+    strcpy(full_path, target_dir);
+    strcat(full_path, "/");
+    strcat(full_path, filename);
+    
+    // Check if file already exists
+    if (access(full_path, F_OK) == 0) {
+        display_message("File already exists. Overwrite? (y/N): ", COLOR_YELLOW);
+        char *confirm = read_line();
+        if (!confirm || (confirm[0] != 'y' && confirm[0] != 'Y')) {
+            display_message("Convert cancelled.", COLOR_YELLOW);
+            free(confirm);
+            free(full_path);
+            if (downloads_path) free(downloads_path);
+            if (!downloads_path) free(target_dir);
+            return false;
+        }
+        free(confirm);
+    }
+    
+    // Write the response to file
+    FILE *file = fopen(full_path, "w");
+    if (!file) {
+        display_message("Failed to create file.", COLOR_RED);
+        free(full_path);
+        if (downloads_path) free(downloads_path);
+        if (!downloads_path) free(target_dir);
+        return false;
+    }
+    
+    // Write the raw response text (not terminal-formatted)
+    fprintf(file, "%s\n", response_text);
+    fclose(file);
+    
+    display_message("Save successful!", COLOR_GREEN);
+    display_message("File saved to: ", COLOR_BLUE);
+    printf("%s\n", full_path);
+    
+    free(full_path);
+    if (downloads_path) free(downloads_path);
+    if (!downloads_path) free(target_dir);
+    return true;
+}
+
+// Validate filename for save command
+bool is_valid_filename(const char *filename) {
+    if (!filename || strlen(filename) == 0) {
+        return false;
+    }
+    
+    // Check for invalid characters
+    const char *invalid_chars = "/\\:*?\"<>|";
+    for (int i = 0; invalid_chars[i]; i++) {
+        if (strchr(filename, invalid_chars[i])) {
+            return false;
+        }
+    }
+    
+    // Check if it's just dots or spaces
+    bool has_valid_char = false;
+    for (int i = 0; filename[i]; i++) {
+        if (filename[i] != '.' && filename[i] != ' ') {
+            has_valid_char = true;
+            break;
+        }
+    }
+    
+    return has_valid_char;
+}
+
+// Read file content for open command
+char* read_file_content(const char *filepath) {
+    if (!filepath) {
+        return NULL;
+    }
+    
+    // Check if file exists
+    if (access(filepath, F_OK) != 0) {
+        display_message("Error: File does not exist.", COLOR_RED);
+        return NULL;
+    }
+    
+    // Check if file is readable
+    if (access(filepath, R_OK) != 0) {
+        display_message("Error: File cannot be read (permission denied).", COLOR_RED);
+        return NULL;
+    }
+    
+    // Get file size
+    struct stat file_stat;
+    if (stat(filepath, &file_stat) != 0) {
+        display_message("Error: Cannot get file information.", COLOR_RED);
+        return NULL;
+    }
+    
+    // Check file size (25MB limit)
+    const off_t max_size = 25 * 1024 * 1024; // 25MB
+    if (file_stat.st_size > max_size) {
+        display_message("Error: File too large (max 25MB).", COLOR_RED);
+        return NULL;
+    }
+    
+    // Open file
+    FILE *file = fopen(filepath, "r");
+    if (!file) {
+        display_message("Error: Cannot open file.", COLOR_RED);
+        return NULL;
+    }
+    
+    // Allocate memory for content
+    char *content = malloc(file_stat.st_size + 1);
+    if (!content) {
+        display_message("Error: Not enough memory to read file.", COLOR_RED);
+        fclose(file);
+        return NULL;
+    }
+    
+    // Read file content
+    size_t bytes_read = fread(content, 1, file_stat.st_size, file);
+    fclose(file);
+    
+    if (bytes_read != (size_t)file_stat.st_size) {
+        display_message("Error: Failed to read complete file.", COLOR_RED);
+        free(content);
+        return NULL;
+    }
+    
+    content[bytes_read] = '\0';
+    return content;
+}
+
+// Check if file is text-based
+bool is_text_file(const char *filepath) {
+    if (!filepath) {
+        return false;
+    }
+    
+    FILE *file = fopen(filepath, "r");
+    if (!file) {
+        return false;
+    }
+    
+    // Read first 1024 bytes to check for binary content
+    char buffer[1024];
+    size_t bytes_read = fread(buffer, 1, sizeof(buffer), file);
+    fclose(file);
+    
+    if (bytes_read == 0) {
+        return true; // Empty file is considered text
+    }
+    
+    // Check for null bytes (indicates binary file)
+    for (size_t i = 0; i < bytes_read; i++) {
+        if (buffer[i] == '\0') {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+// Display interactive mode help menu
+void display_interactive_help(void) {
+    printf("\n");
+    display_message("--- DeepShell Interactive Mode Commands ---", COLOR_GREEN);
+    printf("\n");
+    printf("Available Commands:\n");
+    printf("  exit, quit                        End the interactive session and return to command line\n");
+    printf("  help                              Show this help message with all available commands\n");
+    printf("  save [filename]                   Save the last LLM response to a markdown file\n");
+    printf("  open [filepath]                   Open a text file and process it as input to the LLM\n");
+    printf("\n");
+    printf("Command Details:\n");
+    printf("  exit/quit:\n");
+    printf("    - Ends the current interactive session\n");
+    printf("    - Returns to the command line\n");
+    printf("    - Conversation history is cleared (not saved between sessions)\n");
+    printf("\n");
+    printf("  help:\n");
+    printf("    - Displays this comprehensive help menu\n");
+    printf("    - Shows all available interactive commands\n");
+    printf("    - Provides detailed usage information\n");
+    printf("\n");
+    printf("  save [filename]:\n");
+    printf("    - Saves the last LLM response to a markdown file\n");
+    printf("    - Automatically adds .md extension if not provided\n");
+    printf("    - Saves to Downloads folder (falls back to home directory)\n");
+    printf("    - Asks for confirmation before overwriting existing files\n");
+    printf("    - Validates filenames for invalid characters\n");
+    printf("    - Example: 'save my-notes' → saves as 'my-notes.md'\n");
+    printf("\n");
+    printf("  open [filepath]:\n");
+    printf("    - Opens a text file and processes it as input to the LLM\n");
+    printf("    - Supports both absolute and relative file paths\n");
+    printf("    - Validates file exists, is readable, and is text-based\n");
+    printf("    - Prompts for instructions on how to process the file\n");
+    printf("    - Combines your instructions with file content for the LLM\n");
+    printf("    - Example: 'open /home/user/data.txt'\n");
+    printf("    - Example: 'open ../documents/notes.md'\n");
+    printf("\n");
+    printf("Usage Tips:\n");
+    printf("  - Type any text to send as a query to the active LLM\n");
+    printf("  - Use 'save' to preserve important responses for later reference\n");
+    printf("  - Use 'open' to analyze files, documents, or code with the LLM\n");
+    printf("  - Use 'help' anytime to see this command reference\n");
+    printf("  - Use 'exit' or 'quit' to end the session\n");
+    printf("\n");
+}
+
 // Get password input with optional confirmation
 char* get_password_input(const char *prompt, bool confirm) {
     printf("%s", prompt);

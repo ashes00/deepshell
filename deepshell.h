@@ -16,7 +16,7 @@
 #include <readline/history.h>
 
 // Version
-#define DEEPSHELL_VERSION "1.3.1"
+#define DEEPSHELL_VERSION "1.3.5"
 
 // Configuration constants
 #define CONFIG_DIR_NAME ".deepshell"
@@ -233,5 +233,16 @@ bool export_config_to_file(const config_t *config, const char *filename, const c
 bool import_config_from_file(config_t *config, const char *filename, const char *password);
 char* get_downloads_path(void);
 char* get_password_input(const char *prompt, bool confirm);
+
+// Save functions
+bool save_response_to_file(const char *response_text, const char *filename);
+bool is_valid_filename(const char *filename);
+
+// Open functions
+char* read_file_content(const char *filepath);
+bool is_text_file(const char *filepath);
+
+// Help functions
+void display_interactive_help(void);
 
 #endif // DEEPSHELL_H 
