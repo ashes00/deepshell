@@ -59,10 +59,10 @@ Designed for developers, researchers, and power users, DeepShell abstracts away 
 
 ```
 # Download the appropriate .deb package for your system
-wget https://github.com/ashes00/deepshell/releases/download/v1.3.1/deepshell-1.3.1-ubuntu-20.04.deb
+wget https://github.com/ashes00/deepshell/releases/download/1.3.5/deepshell_1.3.5_Ubuntu_24.04_amd64.deb
 
 # Install the package
-sudo dpkg -i deepshell-1.3.1-ubuntu-20.04.deb
+sudo dpkg -i deepshell-1.3.5-ubuntu-24.04.deb
 
 # Install any missing dependencies
 sudo apt-get install -f
@@ -85,7 +85,7 @@ sudo apt-get install -f
 
 ```
 # Download and import the GPG key
-curl -fsSL https://github.com/ashes00/deepshell/releases/download/v1.3.1/deepshell-public.key | sudo rpm --import -
+curl -fsSL https://github.com/ashes00/deepshell/releases/download/1.3.5/deepshell-public.key | sudo rpm --import -
 
 # Install the downloaded RPM package (replace with your actual filename)
 sudo rpm -i deepshell-*.rpm
